@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Zelo",
+    "slug": "Zelo-Projet",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./Screens/assets/ZeloCapa.png",
+    "scheme": "zeloprojet",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./Screens/assets/ZeloCapa.png"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./Screens/assets/ZeloCapaTranparente.png",
+        "monochromeImage": "./Screens/assets/ZeloCapaTranparente.png",
+        "package": "com.joao_vitor01.Zelo"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./Screens/assets/ZeloCapa.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./Screens/assets/ZeloCapaTranparente.png",
+          "imageWidth": 128
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b040fc37-8d71-49fd-8631-eacafa23ba0f"
+      }
+    }
+  }
+}
