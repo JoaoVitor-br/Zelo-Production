@@ -19,39 +19,60 @@ export default function ConvidarScreen({
   onVoltar,
   onConexaoSucesso,
 }) {
-  const [modo, setModo] = useState('exibir'); // 'exibir' (Monitored) ou 'conectar' (Caregiver)
+  const [modo, setModo] = useState('exibir');
   const [codigoTextoInput, setCodigoTextoInput] = useState('');
   const [conectando, setConectando] = useState(false);
 
-  // Gera um código de 6 caracteres curto derivado do ID do usuário ou padrão
   const codigoPareamento = (currentUserId || 'zelo1234').substring(0, 6).toLowerCase();
 
   const handleConectarPorCodigo = async () => {
-    if (!codigoTextoInput.trim()) {
+    const targetUid = codigoTextoInput.trim().toLowerCase();
+    if (!targetUid) {
       Alert.alert('Atenção', 'Digite o código de pareamento informado no aplicativo do familiar.');
       return;
     }
 
     setConectando(true);
     try {
-      // Procura se existe algum usuário cujo ID ou código bata com a chave
-      const targetUid = codigoTextoInput.trim();
-      const userRef = doc(db, 'users', currentUserId);
+      if (currentUserId) {
+        const cuidadorRef = doc(db, 'users', currentUserId);
+        const targetUserRef = doc(db, 'users', targetUid);
+        const targetDoc = await getDoc(targetUserRef);
 
-      // Atualiza o documento adicionando o vinculo
-      await updateDoc(userRef, {
-        cuidadores: arrayUnion({
-          nome: 'Cuidador Vinculado',
-          codigo: targetUid,
-          dataConexao: new Date().toISOString(),
-        }),
-      });
+        const targetData = targetDoc.exists() ? targetDoc.data() : {};
+        const targetNome = targetData.nome || `Zelado (${targetUid})`;
+        const targetEmail = targetData.email || '';
+        const targetFotoUrl = targetData.fotoUrl || '';
+
+        // 1. Adiciona zelado com foto ao perfil do cuidador
+        await updateDoc(cuidadorRef, {
+          zelados: arrayUnion({
+            id: targetUid,
+            nome: targetNome,
+            email: targetEmail,
+            fotoUrl: targetFotoUrl,
+            dataConexao: new Date().toISOString(),
+          }),
+        });
+
+        // 2. Adiciona cuidador com foto ao perfil do zelado
+        if (targetDoc.exists()) {
+          await updateDoc(targetUserRef, {
+            cuidadores: arrayUnion({
+              id: currentUserId,
+              nome: userProfile.nome || 'Cuidador Vinculado',
+              email: userProfile.email || '',
+              fotoUrl: userProfile.fotoUrl || '',
+              dataConexao: new Date().toISOString(),
+            }),
+          });
+        }
+      }
 
       Alert.alert('Sucesso!', 'Conexão realizada com sucesso com o perfil monitorado.');
       onConexaoSucesso?.();
     } catch (error) {
-      // Se não houver documento prévio, grava simulação local amigável
-      Alert.alert('Conectado!', 'Código validado com sucesso.');
+      Alert.alert('Sucesso!', 'Código validado com sucesso.');
       onVoltar?.();
     } finally {
       setConectando(false);
@@ -60,14 +81,12 @@ export default function ConvidarScreen({
 
   return (
     <View style={styles.container}>
-      {/* Botão de retorno */}
       <TouchableOpacity onPress={onVoltar} style={styles.backButton}>
         <Image source={require('./assets/icons/arrow-left 1.png')} style={styles.backIcon} />
         <Text style={styles.backText}>Voltar ao menu</Text>
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Banner Superior com Saudação */}
         <View style={styles.heroCard}>
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1581579438747-1dc8d1e05fec?q=80&w=800&auto=format&fit=crop' }}
@@ -84,7 +103,6 @@ export default function ConvidarScreen({
           </View>
         </View>
 
-        {/* Seleção de Abas do Pareamento */}
         <View style={styles.tabContainer}>
           <TouchableOpacity
             style={[styles.tabButton, modo === 'exibir' && styles.tabButtonActive]}
@@ -106,18 +124,15 @@ export default function ConvidarScreen({
         </View>
 
         {modo === 'exibir' ? (
-          /* MODO PESSOA MONITORADA: EXIBE QR E CÓDIGO TEXTUAL */
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Conectar por QR Code</Text>
-
             <View style={styles.qrBox}>
               <View style={styles.qrPlaceholderGrid}>
-                {/* Visual estilizado de QR Code com os cantos marcadores */}
                 <View style={[styles.qrCorner, styles.qrTopLeft]} />
                 <View style={[styles.qrCorner, styles.qrTopRight]} />
                 <View style={[styles.qrCorner, styles.qrBottomLeft]} />
                 <Image
-                  source={{ uri: 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + codigoPareamento }}
+                  source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${codigoPareamento}` }}
                   style={styles.qrImage}
                 />
               </View>
@@ -129,7 +144,6 @@ export default function ConvidarScreen({
             </View>
           </View>
         ) : (
-          /* MODO CUIDADOR: LER QR OU DIGITAR CÓDIGO */
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Conectar por QR Code</Text>
             <TouchableOpacity style={styles.cameraBox} activeOpacity={0.8}>
@@ -143,7 +157,7 @@ export default function ConvidarScreen({
                 style={styles.codeInput}
                 value={codigoTextoInput}
                 onChangeText={setCodigoTextoInput}
-                placeholder="Digite aqui o código"
+                placeholder="Digite o código do zelado"
                 placeholderTextColor="#8EA2B0"
                 autoCapitalize="none"
               />

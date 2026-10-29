@@ -2,6 +2,8 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { Platform } from 'react-native';
+import { getStorage } from 'firebase/storage';
+
 
 const firebaseConfig = {
 apiKey: "AIzaSyBxsvd8PA7qIqijCmsu925hSF4RbuoZ-Hc",
@@ -16,6 +18,7 @@ apiKey: "AIzaSyBxsvd8PA7qIqijCmsu925hSF4RbuoZ-Hc",
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 export const analytics =
   Platform.OS === 'web'

@@ -14,9 +14,9 @@
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./Screens/assets/ZeloCapaTranparente.png",
-        "monochromeImage": "./Screens/assets/ZeloCapaTranparente.png",
-        "package": "com.joao_vitor01.Zelo"
+        "monochromeImage": "./Screens/assets/ZeloCapaTranparente.png"
       },
+      "package": "com.joao_vitor01.Zelo",
       "predictiveBackGestureEnabled": false
     },
     "web": {

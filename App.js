@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { BackHandler, SafeAreaView, View, StyleSheet, StatusBar } from 'react-native';
+import { SafeAreaView, View, StyleSheet, StatusBar } from 'react-native';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, collection, onSnapshot } from 'firebase/firestore';
+import * as Notifications from 'expo-notifications';
 
 import { auth, db } from './firebase';
 import InicioScreen from './Screens/InicioScreen';
@@ -10,14 +11,17 @@ import CriarContaScreen from './Screens/CriarContaScreen';
 import EsqueciSenhaScreen from './Screens/EsqueciSenhaScreen';
 import MenuPrincipalScreen from './Screens/MenuPrincipalScreen';
 import ListaCuidadoresScreen from './Screens/ListaCuidadoresScreen';
+import ListaZeladosScreen from './Screens/ListaZeladosScreen';
 import ResumoDiaScreen from './Screens/ResumoDiaScreen';
 import ConvidarScreen from './Screens/ConvidarScreen';
 import MedicamentosScreen from './Screens/MedicamentosScreen';
 import CadastroMedicamentoScreen from './Screens/CadastroMedicamentoScreen';
+import TratamentosScreen from './Screens/TratamentosScreen';
 import PerfilScreen from './Screens/PerfilScreen';
 import AnotacoesScreen from './Screens/AnotacoesScreen';
 import MapaScreen from './Screens/MapaScreen';
 import NavegacaoModal from './Screens/NavegacaoModal';
+import ConfirmacaoIngestaoModal from './Screens/ConfirmacaoIngestaoModal';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('inicio');
@@ -25,10 +29,15 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState({});
   const [cuidadores, setCuidadores] = useState([]);
+  const [zelados, setZelados] = useState([]);
   const [assuntosResumo, setAssuntosResumo] = useState([]);
   const [medicamentos, setMedicamentos] = useState([]);
   const [anotacoes, setAnotacoes] = useState([]);
   const [medicamentoSelecionado, setMedicamentoSelecionado] = useState(null);
+
+  // Controle do Alarme de Confirmar Dose Ativo (RF010, RF015)
+  const [modalIngetaoVisible, setModalIngestaoVisible] = useState(false);
+  const [medicamentoParaConfirmar, setMedicamentoParaConfirmar] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authenticatedUser) => {
@@ -37,14 +46,16 @@ export default function App() {
         try {
           const userDoc = await getDoc(doc(db, 'users', authenticatedUser.uid));
           if (userDoc.exists()) {
-            setUserProfile(userDoc.data());
-            if (userDoc.data().cuidadores) {
-              setCuidadores(userDoc.data().cuidadores);
-            }
+            const data = userDoc.data();
+            setUserProfile(data);
+            if (data.cuidadores) setCuidadores(data.cuidadores);
+            if (data.zelados) setZelados(data.zelados);
           }
         } catch (e) {}
       } else {
         setUserProfile({});
+        setCuidadores([]);
+        setZelados([]);
       }
     });
 
@@ -54,6 +65,15 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
+    const unsubUserDoc = onSnapshot(doc(db, 'users', user.uid), (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
+        setUserProfile(data);
+        if (data.cuidadores) setCuidadores(data.cuidadores);
+        if (data.zelados) setZelados(data.zelados);
+      }
+    });
+
     const unsubMeds = onSnapshot(
       collection(db, 'users', user.uid, 'medicamentos'),
       (snapshot) => {
@@ -61,8 +81,8 @@ export default function App() {
         setMedicamentos(medsData);
 
         const resumoItems = medsData.map((m) => ({
-          titulo: `${m.nome} - ${m.horario || 'Horário do dia'}`,
-          descricao: `Dose: ${m.dose || '1 comprimido'}. Obs: ${m.observacao || 'Uso contínuo'}`,
+          titulo: `${m.nome} - Horário: ${m.horario || 'Agendado'}`,
+          descricao: `Dose: ${m.dose || '1 comprimido'}. Restantes no estoque: ${m.quantidade || '0'}`,
         }));
         setAssuntosResumo(resumoItems);
       },
@@ -78,49 +98,27 @@ export default function App() {
       () => {}
     );
 
-    return () => {
-      unsubMeds();
-      unsubNotes();
-    };
-  }, [user]);
-
-  const voltarAoMenu = () => setCurrentScreen('menu');
-
-  useEffect(() => {
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (navModalVisible) {
-        setNavModalVisible(false);
-        return true;
+    // Escuta toque em notificações do SO (RF015)
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const medId = response.notification.request.content.data?.medicamentoId;
+      if (medId) {
+        const medEncontrado = medicamentos.find((m) => m.id === medId);
+        if (medEncontrado) {
+          setMedicamentoParaConfirmar(medEncontrado);
+          setModalIngestaoVisible(true);
+        }
       }
-
-      if (currentScreen === 'cadastroMedicamento') {
-        setCurrentScreen('medicamentos');
-        return true;
-      }
-
-      if (currentScreen === 'criar' || currentScreen === 'esqueciSenha') {
-        setCurrentScreen('login');
-        return true;
-      }
-
-      if (
-        currentScreen === 'cuidadores' ||
-        currentScreen === 'resumo' ||
-        currentScreen === 'convidar' ||
-        currentScreen === 'medicamentos' ||
-        currentScreen === 'perfil' ||
-        currentScreen === 'anotacoes' ||
-        currentScreen === 'mapa'
-      ) {
-        voltarAoMenu();
-        return true;
-      }
-
-      return false;
     });
 
-    return () => subscription.remove();
-  }, [currentScreen, navModalVisible]);
+    return () => {
+      unsubUserDoc();
+      unsubMeds();
+      unsubNotes();
+      subscription.remove();
+    };
+  }, [user, medicamentos]);
+
+  const voltarAoMenu = () => setCurrentScreen('menu');
 
   const handleLogout = async () => {
     try {
@@ -137,15 +135,23 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Modal de Navegação do Protótipo (iPhone 17 - 31) */}
+      {/* Modal Interativa do Alarme de Medicamento */}
+      <ConfirmacaoIngestaoModal
+        visible={modalIngetaoVisible}
+        medicamento={medicamentoParaConfirmar}
+        userId={user?.uid}
+        onClose={() => setModalIngestaoVisible(false)}
+        onConfirmado={() => setModalIngestaoVisible(false)}
+      />
+
       <NavegacaoModal
         visible={navModalVisible}
         onClose={() => setNavModalVisible(false)}
+        onNavigateToZelados={() => setCurrentScreen('zelados')}
         onNavigateToMedicamentos={() => setCurrentScreen('medicamentos')}
         onNavigateToResumo={() => setCurrentScreen('resumo')}
         onNavigateToAnotacoes={() => setCurrentScreen('anotacoes')}
         onNavigateToPerfil={() => setCurrentScreen('perfil')}
-        onNavigateToMapa={() => setCurrentScreen('mapa')}
       />
 
       <View style={styles.screenContainer}>
@@ -175,8 +181,10 @@ export default function App() {
         {currentScreen === 'menu' && (
           <MenuPrincipalScreen
             nomeUsuario={nomeExibicao}
+            fotoUsuario={userProfile.fotoUrl || user?.photoURL}
             onOpenNav={() => setNavModalVisible(true)}
             onNavigateToCuidadores={() => setCurrentScreen('cuidadores')}
+            onNavigateToZelados={() => setCurrentScreen('zelados')}
             onNavigateToResumo={() => setCurrentScreen('resumo')}
             onNavigateToConvidar={() => setCurrentScreen('convidar')}
             onNavigateToMedicamentos={() => setCurrentScreen('medicamentos')}
@@ -188,6 +196,10 @@ export default function App() {
 
         {currentScreen === 'cuidadores' && (
           <ListaCuidadoresScreen cuidadores={cuidadores} onVoltar={voltarAoMenu} />
+        )}
+
+        {currentScreen === 'zelados' && (
+          <ListaZeladosScreen zelados={zelados} onVoltar={voltarAoMenu} />
         )}
 
         {currentScreen === 'resumo' && (
@@ -212,8 +224,8 @@ export default function App() {
               setCurrentScreen('cadastroMedicamento');
             }}
             onSelectMedicamento={(med) => {
-              setMedicamentoSelecionado(med);
-              setCurrentScreen('cadastroMedicamento');
+              setMedicamentoParaConfirmar(med);
+              setModalIngestaoVisible(true);
             }}
           />
         )}
@@ -225,6 +237,10 @@ export default function App() {
             onVoltar={() => setCurrentScreen('medicamentos')}
             onSalvo={() => setCurrentScreen('medicamentos')}
           />
+        )}
+
+        {currentScreen === 'tratamentos' && (
+          <TratamentosScreen userId={user?.uid} onVoltar={voltarAoMenu} />
         )}
 
         {currentScreen === 'perfil' && (
@@ -252,11 +268,6 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  screenContainer: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  screenContainer: { flex: 1 },
 });

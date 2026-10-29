@@ -6,8 +6,10 @@ import { COLORS, FONTS, SPACING } from '../theme';
 
 export default function MenuPrincipalScreen({
   nomeUsuario = 'Ana',
+  fotoUsuario = null,
   onOpenNav = () => {},
   onNavigateToCuidadores = () => {},
+  onNavigateToZelados = () => {},
   onNavigateToResumo = () => {},
   onNavigateToConvidar = () => {},
   onNavigateToMedicamentos = () => {},
@@ -20,7 +22,6 @@ export default function MenuPrincipalScreen({
 
   return (
     <View style={styles.background}>
-      {/* Barra de Topo com Ícone de Menu Hambúrguer */}
       <View style={styles.topHeader}>
         <TouchableOpacity onPress={onOpenNav} style={styles.hamburgerButton} activeOpacity={0.7}>
           <Text style={styles.hamburgerIcon}>☰</Text>
@@ -34,10 +35,9 @@ export default function MenuPrincipalScreen({
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Banner com foto e saudação */}
         <TouchableOpacity style={styles.hero} onPress={onNavigateToPerfil} activeOpacity={0.9}>
           <Image
-            source={require('./assets/cuidadora.jpg')}
+            source={fotoUsuario ? { uri: fotoUsuario } : require('./assets/cuidadora.jpg')}
             style={styles.heroImage}
             resizeMode="cover"
           />
@@ -48,11 +48,17 @@ export default function MenuPrincipalScreen({
           </View>
         </TouchableOpacity>
 
-        {/* Card Principal de Opções */}
         <View style={styles.optionsCard}>
           <TouchableOpacity style={styles.option} onPress={onNavigateToCuidadores} activeOpacity={0.75}>
             <Image source={require('./assets/icons/users-round (1) 1.png')} style={styles.optionIcon} />
             <Text style={styles.optionText}>Ver cuidadores</Text>
+          </TouchableOpacity>
+
+          <View style={styles.separator} />
+
+          <TouchableOpacity style={styles.option} onPress={onNavigateToZelados} activeOpacity={0.75}>
+            <Image source={require('./assets/iconZelado.png')} style={styles.optionIcon} />
+            <Text style={styles.optionText}>Ver os zelados</Text>
           </TouchableOpacity>
 
           <View style={styles.separator} />
@@ -70,6 +76,27 @@ export default function MenuPrincipalScreen({
           </TouchableOpacity>
         </View>
 
+        <View style={styles.extraGrid}>
+          <TouchableOpacity style={styles.gridItem} onPress={onNavigateToMedicamentos}>
+            <Text style={styles.gridEmoji}>💊</Text>
+            <Text style={styles.gridText}>Remédios</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridItem} onPress={onNavigateToAnotacoes}>
+            <Text style={styles.gridEmoji}>📝</Text>
+            <Text style={styles.gridText}>Anotações</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridItem} onPress={onNavigateToMapa}>
+            <Text style={styles.gridEmoji}>🏥</Text>
+            <Text style={styles.gridText}>Farmácias</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridItem} onPress={onNavigateToPerfil}>
+            <Text style={styles.gridEmoji}>👤</Text>
+            <Text style={styles.gridText}>Meu Perfil</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -84,16 +111,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4FBFE',
     zIndex: 10,
   },
-  hamburgerButton: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-  },
-  hamburgerIcon: {
-    fontSize: 28,
-    color: COLORS.primaryBlue,
-    fontWeight: 'bold',
-  },
+  hamburgerButton: { width: 36, height: 36, justifyContent: 'center' },
+  hamburgerIcon: { fontSize: 28, color: COLORS.primaryBlue, fontWeight: 'bold' },
   dotPattern: { ...StyleSheet.absoluteFillObject, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', paddingTop: 60 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7BC8E5', margin: 6 },
   content: { paddingBottom: SPACING.lg || 24 },
@@ -108,10 +127,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primaryBlue, backgroundColor: 'rgba(116, 207, 239, 0.43)',
     paddingHorizontal: 16, paddingVertical: 4,
   },
-  option: { minHeight: 110, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
+  option: { minHeight: 90, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
   optionText: { color: COLORS.primaryBlue, fontSize: 21, fontWeight: FONTS.bold, flexShrink: 1 },
   separator: { height: 1.5, backgroundColor: COLORS.primaryBlue, opacity: 0.85 },
-  optionIcon: { width: 48, height: 48, resizeMode: 'contain' },
+  optionIcon: { width: 44, height: 44, resizeMode: 'contain' },
   extraGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: '8%', marginTop: 20, gap: 12 },
   gridItem: {
     width: '47%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14,

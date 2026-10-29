@@ -8,25 +8,85 @@ import {
   ScrollView,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { COLORS, FONTS, SPACING } from '../theme';
-import { db, auth } from '../firebase';
+import * as ImagePicker from 'expo-image-picker';
+import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { COLORS, FONTS, SPACING } from '../theme';
+import { db, auth, storage } from '../firebase';
 
 export default function PerfilScreen({
   userProfile = {},
   userId,
-  tipoUsuario = 'Cuidador', // 'Cuidador' ou 'Usuario monitorado'
+  tipoUsuario = 'Cuidador',
   onVoltar,
   onLogout,
 }) {
   const [nome, setNome] = useState(userProfile.nome || 'João Wanderley');
-  const [email, setEmail] = useState(userProfile.email || 'joao@email.com');
+  const [email] = useState(userProfile.email || 'joao@email.com');
   const [telefone, setTelefone] = useState(userProfile.telefone || '(11) 98765-4321');
   const [descricao, setDescricao] = useState(
     userProfile.descricao || 'Cuidador responsável por acompanhamento diário.'
   );
+  const [fotoUrl, setFotoUrl] = useState(userProfile.fotoUrl || auth.currentUser?.photoURL || '');
   const [salvando, setSalvando] = useState(false);
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+
+  // Seleciona foto da galeria e faz upload para o Firebase Storage
+  const handlePickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permissão necessária', 'É preciso permitir o acesso à galeria para alterar a foto.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedUri = result.assets[0].uri;
+        await uploadFotoPerfil(selectedUri);
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
+    }
+  };
+
+  const uploadFotoPerfil = async (uri) => {
+    if (!userId) return;
+    setEnviandoFoto(true);
+
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `perfis/${userId}.jpg`);
+
+      await uploadBytes(storageRef, blob);
+      const downloadUrl = await getDownloadURL(storageRef);
+
+      setFotoUrl(downloadUrl);
+
+      // Atualiza Firestore e Firebase Auth
+      await updateDoc(doc(db, 'users', userId), { fotoUrl: downloadUrl });
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { photoURL: downloadUrl });
+      }
+
+      Alert.alert('Sucesso', 'Foto de perfil atualizada com sucesso!');
+    } catch (error) {
+      Alert.alert('Aviso', 'Não foi possível carregar a imagem na nuvem. A imagem foi mantida localmente.');
+      setFotoUrl(uri);
+    } finally {
+      setEnviandoFoto(false);
+    }
+  };
 
   const handleSalvarPerfil = async () => {
     setSalvando(true);
@@ -36,7 +96,11 @@ export default function PerfilScreen({
           nome: nome.trim(),
           telefone: telefone.trim(),
           descricao: descricao.trim(),
+          fotoUrl: fotoUrl,
         });
+        if (auth.currentUser) {
+          await updateProfile(auth.currentUser, { displayName: nome.trim() });
+        }
       }
       Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
     } catch (error) {
@@ -77,15 +141,32 @@ export default function PerfilScreen({
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Cabeçalho do Perfil */}
+        {/* Cabeçalho do Perfil com toque para trocar foto */}
         <View style={styles.userHeader}>
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop' }}
-            style={styles.avatarImage}
-          />
+          <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8} style={styles.avatarContainer}>
+            {fotoUrl ? (
+              <Image source={{ uri: fotoUrl }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarInitial}>{(nome || '?').charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+            <View style={styles.cameraBadge}>
+              <Text style={styles.cameraIconText}>📷</Text>
+            </View>
+            {enviandoFoto && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              </View>
+            )}
+          </TouchableOpacity>
+
           <View style={styles.userHeaderInfo}>
             <Text style={styles.userName}>{nome || 'Nome Completo'}</Text>
             <Text style={styles.userRole}>{tipoUsuario}</Text>
+            <TouchableOpacity onPress={handlePickImage}>
+              <Text style={styles.changePhotoText}>Toque na foto para alterar</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -103,8 +184,6 @@ export default function PerfilScreen({
             <TextInput
               style={styles.input}
               value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
               editable={false}
             />
           </View>
@@ -156,10 +235,42 @@ const styles = StyleSheet.create({
   backText: { color: COLORS.primaryBlue, fontSize: 17, fontWeight: FONTS.medium },
   scrollContent: { paddingBottom: 30 },
   userHeader: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
-  avatarImage: { width: 72, height: 72, borderRadius: 36, marginRight: 16 },
-  userHeaderInfo: { flex: 1 },
+  avatarContainer: { position: 'relative' },
+  avatarImage: { width: 76, height: 76, borderRadius: 38 },
+  avatarPlaceholder: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#C7ECF9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitial: { color: COLORS.primaryBlue, fontSize: 32, fontWeight: FONTS.bold },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: COLORS.primaryBlue,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  cameraIconText: { color: '#FFFFFF', fontSize: 12 },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userHeaderInfo: { flex: 1, marginLeft: 16 },
   userName: { fontSize: 22, fontWeight: FONTS.bold, color: COLORS.textDark },
-  userRole: { fontSize: 16, color: COLORS.textMuted, marginTop: 2 },
+  userRole: { fontSize: 15, color: COLORS.textMuted, marginTop: 2 },
+  changePhotoText: { fontSize: 13, color: COLORS.primaryBlue, fontWeight: FONTS.medium, marginTop: 4 },
   formCard: {
     backgroundColor: '#BFE7FA',
     borderRadius: 24,
