@@ -12,7 +12,7 @@ import {
 import { COLORS, FONTS, SPACING } from '../theme';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { agendarAlarmeMedicamento } from '../services/NotificationService';
+import { agendarAlarmeMedicamento } from './NotificationService';
 
 export default function CadastroMedicamentoScreen({
   userId,

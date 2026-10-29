@@ -11,7 +11,7 @@ export default function ListaZeladosScreen({ zelados = [], onVoltar = () => {} }
       </TouchableOpacity>
 
       <View style={styles.titleContainer}>
-        <Image source={require('./assets/iconZelado.png')} style={styles.titleIcon} />
+        <Image source={require('./assets/icons/iconZelado.png')} style={styles.titleIcon} />
         <Text style={styles.title}>Ver Zelados</Text>
       </View>
 

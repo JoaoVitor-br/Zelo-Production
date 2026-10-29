@@ -11,7 +11,7 @@ import {
   TextInput,
 } from 'react-native';
 import { COLORS, FONTS, SPACING } from '../theme';
-import { lerTextoEmVozAlta, pararVoz } from '../services/NotificationService';
+import { lerTextoEmVozAlta, pararVoz } from './NotificationService';
 import { db } from '../firebase';
 import { collection, addDoc, onSnapshot, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 

@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { COLORS, FONTS, SPACING } from '../theme';
-import { lerTextoEmVozAlta, pararVoz } from '../services/NotificationService';
+import { lerTextoEmVozAlta, pararVoz } from './NotificationService';
 import { db } from '../firebase';
 import { doc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 

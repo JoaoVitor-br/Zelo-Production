@@ -57,7 +57,7 @@ export default function MenuPrincipalScreen({
           <View style={styles.separator} />
 
           <TouchableOpacity style={styles.option} onPress={onNavigateToZelados} activeOpacity={0.75}>
-            <Image source={require('./assets/iconZelado.png')} style={styles.optionIcon} />
+            <Image source={require('./assets/icons/iconZelado.png')} style={styles.optionIcon} />
             <Text style={styles.optionText}>Ver os zelados</Text>
           </TouchableOpacity>
 
@@ -76,27 +76,7 @@ export default function MenuPrincipalScreen({
           </TouchableOpacity>
         </View>
 
-        <View style={styles.extraGrid}>
-          <TouchableOpacity style={styles.gridItem} onPress={onNavigateToMedicamentos}>
-            <Text style={styles.gridEmoji}>💊</Text>
-            <Text style={styles.gridText}>Remédios</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.gridItem} onPress={onNavigateToAnotacoes}>
-            <Text style={styles.gridEmoji}>📝</Text>
-            <Text style={styles.gridText}>Anotações</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.gridItem} onPress={onNavigateToMapa}>
-            <Text style={styles.gridEmoji}>🏥</Text>
-            <Text style={styles.gridText}>Farmácias</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.gridItem} onPress={onNavigateToPerfil}>
-            <Text style={styles.gridEmoji}>👤</Text>
-            <Text style={styles.gridText}>Meu Perfil</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     </View>
   );
@@ -124,6 +104,7 @@ const styles = StyleSheet.create({
   greetingSubtitle: { color: '#FFFFFF', fontSize: 20, fontWeight: FONTS.medium, marginTop: 4 },
   optionsCard: {
     marginTop: 20, marginHorizontal: '8%', borderRadius: 24, borderWidth: 2,
+    
     borderColor: COLORS.primaryBlue, backgroundColor: 'rgba(116, 207, 239, 0.43)',
     paddingHorizontal: 16, paddingVertical: 4,
   },
