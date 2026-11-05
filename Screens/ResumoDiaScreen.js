@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 
 export default function ResumoDiaScreen({ assuntos = [], onVoltar = () => {} }) {
@@ -28,12 +29,12 @@ const styles = StyleSheet.create({
   backButton: { paddingVertical: SPACING.sm || 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8 },
   backIcon: { width: 20, height: 20, resizeMode: 'contain' },
   backText: { color: COLORS.primaryBlue, fontSize: 17, fontWeight: FONTS.medium },
-  title: { fontSize: 29, color: COLORS.primaryBlue, fontWeight: FONTS.bold, marginVertical: SPACING.md || 16 },
+  title: { fontFamily: FONTS.heading, fontSize: 29, color: COLORS.primaryBlue, fontWeight: FONTS.bold, marginVertical: SPACING.md || 16 },
   list: { gap: 12, flexGrow: 1 },
   item: { flexDirection: 'row', alignItems: 'flex-start', padding: 16, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: COLORS.inputBorder },
   bullet: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.primaryBlue, marginTop: 6, marginRight: 12 },
   itemText: { flex: 1 },
-  itemTitle: { color: COLORS.textDark, fontSize: 17, fontWeight: FONTS.bold },
+  itemTitle: { fontFamily: FONTS.heading, color: COLORS.textDark, fontSize: 17, fontWeight: FONTS.bold },
   detail: { color: COLORS.textDark, marginTop: 4, fontSize: 14, lineHeight: 20 },
   empty: { color: COLORS.textDark, fontSize: 16, lineHeight: 24, textAlign: 'center', marginTop: 40 },
 });

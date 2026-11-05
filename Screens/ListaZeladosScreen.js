@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 
 export default function ListaZeladosScreen({ zelados = [], onVoltar = () => {} }) {
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.md || 16,
   },
   titleIcon: { width: 36, height: 36, resizeMode: 'contain', tintColor: COLORS.primaryBlue },
-  title: { fontSize: 28, color: COLORS.primaryBlue, fontWeight: FONTS.bold },
+  title: { fontFamily: FONTS.heading, fontSize: 28, color: COLORS.primaryBlue, fontWeight: FONTS.bold },
   list: { gap: 12, flexGrow: 1 },
   item: {
     flexDirection: 'row',
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: COLORS.primaryBlue, fontSize: 20, fontWeight: FONTS.bold },
   itemText: { flex: 1 },
-  itemTitle: { color: COLORS.textDark, fontSize: 17, fontWeight: FONTS.bold },
+  itemTitle: { fontFamily: FONTS.heading, color: COLORS.textDark, fontSize: 17, fontWeight: FONTS.bold },
   detail: { color: COLORS.textDark, marginTop: 4, fontSize: 14 },
   empty: { color: COLORS.textDark, fontSize: 16, lineHeight: 24, textAlign: 'center', marginTop: 40 },
 });

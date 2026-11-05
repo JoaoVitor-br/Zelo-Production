@@ -152,6 +152,7 @@ export default function App() {
         onNavigateToResumo={() => setCurrentScreen('resumo')}
         onNavigateToAnotacoes={() => setCurrentScreen('anotacoes')}
         onNavigateToPerfil={() => setCurrentScreen('perfil')}
+        onNavigateToMapa={() => setCurrentScreen('mapa')}
       />
 
       <View style={styles.screenContainer}>

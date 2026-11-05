@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import Text from './AppText';
 import MapView, { Callout, Marker } from 'react-native-maps';
 import { COLORS, FONTS } from '../theme';
 
@@ -77,6 +78,7 @@ const styles = StyleSheet.create({
     maxWidth: 180,
   },
   calloutTitle: {
+    fontFamily: FONTS.heading,
     fontSize: 14,
     fontWeight: FONTS.bold,
     color: COLORS.textDark,

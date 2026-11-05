@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Text from './AppText';
 import * as ImagePicker from 'expo-image-picker';
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.inputBorder,
     padding: 16,
   },
-  sectionTitle: { fontSize: 22, fontWeight: FONTS.bold, color: COLORS.textDark, marginBottom: 16 },
+  sectionTitle: { fontFamily: FONTS.heading, fontSize: 22, fontWeight: FONTS.bold, color: COLORS.textDark, marginBottom: 16 },
   inputGroup: { marginBottom: 12 },
   inputLabel: { fontSize: 12, fontWeight: FONTS.bold, color: COLORS.textDark, marginBottom: 4 },
   input: {

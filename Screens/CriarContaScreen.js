@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Text from './AppText';
 import ZeloLogo from '../components/ZeloLogo';
 import { COLORS, FONTS, SPACING } from '../theme';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -224,6 +224,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   title: {
+    fontFamily: FONTS.heading,
     fontSize: 32,
     fontWeight: FONTS.bold,
     color: COLORS.primaryBlue,

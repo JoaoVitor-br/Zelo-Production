@@ -1,12 +1,12 @@
 import React from 'react';
 import {
   View,
-  Text,
   Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 
 export default function MedicamentosScreen({
@@ -75,6 +75,7 @@ const styles = StyleSheet.create({
   backIcon: { width: 20, height: 20, resizeMode: 'contain' },
   backText: { color: COLORS.primaryBlue, fontSize: 17, fontWeight: FONTS.medium },
   screenTitle: {
+    fontFamily: FONTS.heading,
     fontSize: 22,
     color: COLORS.primaryBlue,
     fontWeight: FONTS.bold,

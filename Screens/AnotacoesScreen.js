@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -9,6 +8,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 12,
   },
-  title: { fontSize: 32, fontWeight: FONTS.bold, color: COLORS.primaryBlue },
+  title: { fontFamily: FONTS.heading, fontSize: 32, fontWeight: FONTS.bold, color: COLORS.primaryBlue },
   addCircle: {
     width: 44,
     height: 44,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 14,
   },
-  noteTitle: { fontSize: 22, fontWeight: FONTS.bold, color: COLORS.textDark },
+  noteTitle: { fontFamily: FONTS.heading, fontSize: 22, fontWeight: FONTS.bold, color: COLORS.textDark },
   underline: { height: 2, backgroundColor: COLORS.textDark, marginVertical: 8, width: '60%' },
   noteBody: { fontSize: 15, color: COLORS.textDark, lineHeight: 22 },
   emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20 },
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   emptySubtext: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', marginTop: 8 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalContent: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20 },
-  modalTitle: { fontSize: 22, fontWeight: FONTS.bold, color: COLORS.primaryBlue, marginBottom: 16 },
+  modalTitle: { fontFamily: FONTS.heading, fontSize: 22, fontWeight: FONTS.bold, color: COLORS.primaryBlue, marginBottom: 16 },
   modalInput: {
     borderWidth: 1.5,
     borderColor: COLORS.inputBorder,

@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS } from '../theme';
 
 export default function MapaMap({ style, loadingLocation, permissionDenied }) {

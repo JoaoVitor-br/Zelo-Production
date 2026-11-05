@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
-  Text,
   Image,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 import { lerTextoEmVozAlta, pararVoz } from './NotificationService';
 import { db } from '../firebase';
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   medImage: { width: 110, height: 110 },
-  medTitle: { fontSize: 26, fontWeight: FONTS.bold, color: COLORS.primaryBlue, textAlign: 'center' },
+  medTitle: { fontFamily: FONTS.heading, fontSize: 26, fontWeight: FONTS.bold, color: COLORS.primaryBlue, textAlign: 'center' },
   medDose: { fontSize: 18, fontWeight: FONTS.medium, color: COLORS.textDark, marginTop: 4 },
   medTime: { fontSize: 16, color: COLORS.secondaryGreen, fontWeight: FONTS.bold, marginTop: 2 },
   obsBox: {

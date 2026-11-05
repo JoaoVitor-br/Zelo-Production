@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Image,
@@ -9,6 +8,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 import { db } from '../firebase';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   heroImage: { width: '100%', height: '100%', position: 'absolute' },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 50, 80, 0.45)' },
   heroTextContainer: { flex: 1, justifyContent: 'center', paddingHorizontal: 20 },
-  heroTitle: { color: '#FFFFFF', fontSize: 26, fontWeight: FONTS.bold },
+  heroTitle: { fontFamily: FONTS.heading, color: '#FFFFFF', fontSize: 26, fontWeight: FONTS.bold },
   heroSubtitle: { color: '#FFFFFF', fontSize: 16, fontWeight: FONTS.medium, marginTop: 4 },
   tabContainer: {
     flexDirection: 'row',
@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#FFFFFF' },
   sectionContainer: { alignItems: 'center' },
   sectionTitle: {
+    fontFamily: FONTS.heading,
     fontSize: 22,
     color: COLORS.primaryBlue,
     fontWeight: FONTS.bold,

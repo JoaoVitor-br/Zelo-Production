@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 import { lerTextoEmVozAlta, pararVoz } from './NotificationService';
 import { db } from '../firebase';
@@ -181,14 +181,14 @@ const styles = StyleSheet.create({
   backIcon: { width: 20, height: 20, resizeMode: 'contain' },
   backText: { color: COLORS.primaryBlue, fontSize: 17, fontWeight: FONTS.medium },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 16 },
-  title: { fontSize: 24, fontWeight: FONTS.bold, color: COLORS.primaryBlue },
+  title: { fontFamily: FONTS.heading, fontSize: 24, fontWeight: FONTS.bold, color: COLORS.primaryBlue },
   addButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primaryBlue, justifyContent: 'center', alignItems: 'center' },
   addText: { color: '#FFFFFF', fontSize: 26, marginTop: -2 },
   listContainer: { paddingBottom: 30 },
   card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1.5, borderColor: COLORS.inputBorder },
   cardConfirmado: { backgroundColor: '#F0FDF4', borderColor: COLORS.secondaryGreen },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontSize: 18, fontWeight: FONTS.bold, color: COLORS.textDark, flex: 1 },
+  cardTitle: { fontFamily: FONTS.heading, fontSize: 18, fontWeight: FONTS.bold, color: COLORS.textDark, flex: 1 },
   badgeSuccess: { color: COLORS.secondaryGreen, fontWeight: FONTS.bold, fontSize: 14 },
   cardSub: { fontSize: 14, color: COLORS.textDark, marginTop: 4 },
   cardObs: { fontSize: 13, color: COLORS.textMuted, marginTop: 4 },
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: COLORS.textMuted, marginTop: 40, fontSize: 16 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalContent: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20 },
-  modalTitle: { fontSize: 20, fontWeight: FONTS.bold, color: COLORS.primaryBlue, marginBottom: 16 },
+  modalTitle: { fontFamily: FONTS.heading, fontSize: 20, fontWeight: FONTS.bold, color: COLORS.primaryBlue, marginBottom: 16 },
   input: { borderWidth: 1.5, borderColor: COLORS.inputBorder, borderRadius: 12, height: 46, paddingHorizontal: 12, marginBottom: 12, fontSize: 15 },
   modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 8 },
   cancelBtn: { paddingVertical: 10, paddingHorizontal: 16 },

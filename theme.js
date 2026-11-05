@@ -31,6 +31,8 @@ export const COLORS = {
 };
 
 export const FONTS = {
+  heading: 'Castelle',
+  body: 'OdinRounded',
   bold: '700',
   semiBold: '600',
   medium: '500',

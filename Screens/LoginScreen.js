@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Text from './AppText';
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
 import ZeloLogo from '../components/ZeloLogo';
 import { COLORS, FONTS, SPACING } from '../theme';
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   keyboardView: { flex: 1 },
   scrollContent: { paddingHorizontal: 28, paddingTop: 40, paddingBottom: 30, alignItems: 'center' },
   logoWrapper: { marginBottom: SPACING.xs },
-  title: { fontSize: 32, fontWeight: FONTS.bold, color: COLORS.primaryBlue, textAlign: 'center', marginBottom: 2 },
+  title: { fontFamily: FONTS.heading, fontSize: 32, fontWeight: FONTS.bold, color: COLORS.primaryBlue, textAlign: 'center', marginBottom: 2 },
   subtitle: { fontSize: 18, fontWeight: FONTS.medium, color: COLORS.secondaryGreen, textAlign: 'center', marginBottom: 20 },
   formContainer: { width: '100%' },
   inputGroup: { marginBottom: 12 },

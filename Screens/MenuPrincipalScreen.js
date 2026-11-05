@@ -1,7 +1,8 @@
 import React from 'react';
 import {
-  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet,
+  View, Image, ScrollView, TouchableOpacity, StyleSheet,
 } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 
 export default function MenuPrincipalScreen({

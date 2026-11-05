@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   headerInputs: { flex: 1 },
   nameInput: { fontSize: 20, fontWeight: FONTS.bold, color: COLORS.primaryBlue },
   subInput: { fontSize: 15, color: COLORS.textDark, marginTop: 2 },
-  sectionTitle: { fontSize: 22, color: COLORS.primaryBlue, fontWeight: FONTS.bold, marginTop: 14, marginBottom: 8 },
+  sectionTitle: { fontFamily: FONTS.heading, fontSize: 22, color: COLORS.primaryBlue, fontWeight: FONTS.bold, marginTop: 14, marginBottom: 8 },
   infoCard: { backgroundColor: '#D1F0FA', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1.5, borderColor: COLORS.inputBorder },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
   rowLabel: { fontSize: 16, color: COLORS.textDark, fontWeight: FONTS.medium },

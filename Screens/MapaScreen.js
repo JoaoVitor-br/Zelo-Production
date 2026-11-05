@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import Text from './AppText';
 import * as Location from 'expo-location';
 import { COLORS, FONTS, SPACING } from '../theme';
 import MapaMap from './MapaMap';
