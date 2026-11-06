@@ -10,8 +10,8 @@ SplashScreen.preventAutoHideAsync();
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const [fontsLoaded, fontError] = useFonts({
-    Castelle: require('../../Screens/assets/fonts/castelle/Castelle PERSONAL USE ONLY!.ttf'),
-    OdinRounded: require('../../Screens/assets/fonts/odin_rounded/Odin Rounded - Bold.otf'),
+    kg_perfect_penmanship: require('../../Screens/assets/fonts/kg_perfect_penmanship/KGPerfectPenmanship.ttf'),
+    Super_waffles: require('../../Screens/assets/fonts/super_waffles/Super Waffles.ttf'),
   });
 
   if (fontError) throw fontError;
