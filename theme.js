@@ -31,8 +31,8 @@ export const COLORS = {
 };
 
 export const FONTS = {
-  heading: 'Castelle',
-  body: 'OdinRounded',
+  heading: 'Super_waffles',
+  body: 'kg_perfect_penmanship',
   bold: '700',
   semiBold: '600',
   medium: '500',
