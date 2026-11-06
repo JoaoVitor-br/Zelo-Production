@@ -213,8 +213,17 @@ export default function PerfilScreen({
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDeletarPerfil}>
-            <Text style={styles.deleteButtonText}>DELETAR PERFIL</Text>
+          {/* Botão para Sair da Conta */}
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={() => {
+              Alert.alert('Sair', 'Deseja realmente sair da sua conta?', [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Sair', style: 'destructive', onPress: onLogout },
+              ]);
+            }}
+          >
+            <Text style={styles.logoutButtonText}>SAIR DA CONTA</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -244,7 +253,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#C7ECF9',
     justifyContent: 'center',
     alignItems: 'center',
+  },logoutButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: COLORS.primaryBlue,
+    borderRadius: 14,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
   },
+  logoutButtonText: { color: COLORS.primaryBlue, fontSize: 18, fontWeight: FONTS.bold },
   avatarInitial: { color: COLORS.primaryBlue, fontSize: 32, fontWeight: FONTS.bold },
   cameraBadge: {
     position: 'absolute',

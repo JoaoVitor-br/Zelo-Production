@@ -17,6 +17,7 @@ export default function NavegacaoModal({
   onNavigateToMedicamentos = () => { },
   onNavigateToResumo = () => { },
   onNavigateToAnotacoes = () => { },
+  onNavigateToMapa = () => { },
   onNavigateToPerfil = () => { },
   onNavigateToZelados = () => { },
   onLogout = () => { },
@@ -62,18 +63,6 @@ export default function NavegacaoModal({
           <View style={styles.menuList}>
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={() => handleNavigate(onNavigateToZelados)}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={require('./assets/icons/iconZelado.png')}
-                style={styles.menuIcon}
-              />
-              <Text style={styles.menuText}>Zelados</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
               onPress={() => handleNavigate(onNavigateToMedicamentos)}
               activeOpacity={0.8}
             >
@@ -91,7 +80,7 @@ export default function NavegacaoModal({
               activeOpacity={0.8}
             >
               <Image
-                source={require('./assets/icons/pill (1) 1.png')}
+                source={require('./assets/icons/hospital.png')}
                 style={styles.menuIcon}
               />
               <Text style={styles.menuText}>Farmácias</Text>
