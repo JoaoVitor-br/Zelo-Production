@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, View, StyleSheet, StatusBar } from 'react-native';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, collection, onSnapshot } from 'firebase/firestore';
@@ -34,6 +34,8 @@ export default function App() {
   const [medicamentos, setMedicamentos] = useState([]);
   const [anotacoes, setAnotacoes] = useState([]);
   const [medicamentoSelecionado, setMedicamentoSelecionado] = useState(null);
+  const medicamentosRef = useRef(medicamentos);
+  medicamentosRef.current = medicamentos;
 
   // Controle do Alarme de Confirmar Dose Ativo (RF010, RF015)
   const [modalIngetaoVisible, setModalIngestaoVisible] = useState(false);
@@ -51,7 +53,9 @@ export default function App() {
             if (data.cuidadores) setCuidadores(data.cuidadores);
             if (data.zelados) setZelados(data.zelados);
           }
-        } catch (e) {}
+        } catch (error) {
+          console.error('Falha ao carregar o perfil do Firestore:', error);
+        }
       } else {
         setUserProfile({});
         setCuidadores([]);
@@ -65,14 +69,18 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    const unsubUserDoc = onSnapshot(doc(db, 'users', user.uid), (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const data = docSnapshot.data();
-        setUserProfile(data);
-        if (data.cuidadores) setCuidadores(data.cuidadores);
-        if (data.zelados) setZelados(data.zelados);
-      }
-    });
+    const unsubUserDoc = onSnapshot(
+      doc(db, 'users', user.uid),
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const data = docSnapshot.data();
+          setUserProfile(data);
+          if (data.cuidadores) setCuidadores(data.cuidadores);
+          if (data.zelados) setZelados(data.zelados);
+        }
+      },
+      (error) => console.error('Falha no listener do perfil do Firestore:', error)
+    );
 
     const unsubMeds = onSnapshot(
       collection(db, 'users', user.uid, 'medicamentos'),
@@ -86,7 +94,7 @@ export default function App() {
         }));
         setAssuntosResumo(resumoItems);
       },
-      () => {}
+      (error) => console.error('Falha no listener de medicamentos do Firestore:', error)
     );
 
     const unsubNotes = onSnapshot(
@@ -95,14 +103,14 @@ export default function App() {
         const notesData = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
         setAnotacoes(notesData);
       },
-      () => {}
+      (error) => console.error('Falha no listener de anotações do Firestore:', error)
     );
 
     // Escuta toque em notificações do SO (RF015)
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const medId = response.notification.request.content.data?.medicamentoId;
       if (medId) {
-        const medEncontrado = medicamentos.find((m) => m.id === medId);
+        const medEncontrado = medicamentosRef.current.find((m) => m.id === medId);
         if (medEncontrado) {
           setMedicamentoParaConfirmar(medEncontrado);
           setModalIngestaoVisible(true);
@@ -116,7 +124,7 @@ export default function App() {
       unsubNotes();
       subscription.remove();
     };
-  }, [user, medicamentos]);
+  }, [user]);
 
   const voltarAoMenu = () => setCurrentScreen('menu');
 
@@ -153,6 +161,7 @@ export default function App() {
         onNavigateToAnotacoes={() => setCurrentScreen('anotacoes')}
         onNavigateToPerfil={() => setCurrentScreen('perfil')}
         onNavigateToMapa={() => setCurrentScreen('mapa')}
+        onLogout={handleLogout}
       />
 
       <View style={styles.screenContainer}>

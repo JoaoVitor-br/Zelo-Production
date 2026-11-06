@@ -29,12 +29,6 @@ export default function MenuPrincipalScreen({
         </TouchableOpacity>
       </View>
 
-      <View pointerEvents="none" style={styles.dotPattern}>
-        {Array.from({ length: 80 }, (_, index) => (
-          <View key={index} style={[styles.dot, { opacity: 0.12 + (index % 4) * 0.04 }]} />
-        ))}
-      </View>
-
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.hero} onPress={onNavigateToPerfil} activeOpacity={0.9}>
           <Image
@@ -92,7 +86,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4FBFE',
     zIndex: 10,
   },
-  hamburgerButton: { width: 36, height: 36, justifyContent: 'center' },
+  hamburgerButton: { width: 36, height: 36, justifyContent: 'center' , },
   hamburgerIcon: { fontSize: 28, color: COLORS.primaryBlue, fontWeight: 'bold' },
   dotPattern: { ...StyleSheet.absoluteFillObject, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', paddingTop: 60 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7BC8E5', margin: 6 },
