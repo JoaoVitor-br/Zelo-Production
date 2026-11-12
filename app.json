@@ -2,7 +2,7 @@
   "expo": {
     "name": "Zelo",
     "slug": "Zelo-Projet",
-    "version": "1.0.0",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./Screens/assets/ZeloCapa.png",
     "scheme": "zeloprojet",
