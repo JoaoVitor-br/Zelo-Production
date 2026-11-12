@@ -1,20 +1,21 @@
 import React from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Image,
   Modal,
-  SafeAreaView,
   Alert,
 } from 'react-native';
+import Text from './AppText';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, FONTS, SPACING } from '../theme';
 
 export default function NavegacaoModal({
   visible = false,
   onClose = () => { },
   onNavigateToMedicamentos = () => { },
+  onNavigateToTratamentos = () => { },
   onNavigateToResumo = () => { },
   onNavigateToAnotacoes = () => { },
   onNavigateToMapa = () => { },
@@ -76,14 +77,26 @@ export default function NavegacaoModal({
             {/* Farmácias */}
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={() => handleNavigate(onNavigateToMapa)}
+              onPress={() => handleNavigate(onNavigateToTratamentos)}
               activeOpacity={0.8}
             >
               <Image
                 source={require('./assets/icons/hospital.png')}
                 style={styles.menuIcon}
               />
-              <Text style={styles.menuText}>Farmácias</Text>
+              <Text style={styles.menuText}>Consultas</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleNavigate(onNavigateToMapa)}
+              activeOpacity={0.8}
+            >
+              <Image
+                source={require('./assets/icons/map.png')}
+                style={styles.menuIcon}
+              />
+              <Text style={styles.menuText}>Mapa</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

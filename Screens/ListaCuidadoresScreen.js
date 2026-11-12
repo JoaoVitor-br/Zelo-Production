@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 
 export default function ListaCuidadoresScreen({ cuidadores = [], onVoltar = () => {} }) {
@@ -13,12 +14,13 @@ export default function ListaCuidadoresScreen({ cuidadores = [], onVoltar = () =
       <ScrollView contentContainerStyle={styles.list}>
         {cuidadores.length ? (
           cuidadores.map((item, index) => {
-            const nome = typeof item === 'string' ? item : item.nome;
-            const detalhe = typeof item === 'string' ? '' : item.descricao || item.email;
-            const fotoUrl = typeof item === 'object' ? item.fotoUrl : null;
+            const cuidador = typeof item === 'string' ? { nome: item } : item || {};
+            const nome = cuidador.nome || 'Cuidador';
+            const detalhe = cuidador.descricao || cuidador.email || 'Cuidador vinculado';
+            const fotoUrl = cuidador.fotoUrl || cuidador.photoURL || null;
 
             return (
-              <View key={`${nome}-${index}`} style={styles.item}>
+              <View key={cuidador.id || cuidador.uid || `${nome}-${index}`} style={styles.item}>
                 <View style={styles.avatar}>
                   {fotoUrl ? (
                     <Image source={{ uri: fotoUrl }} style={styles.avatarImage} />
@@ -46,7 +48,7 @@ const styles = StyleSheet.create({
   backButton: { paddingVertical: SPACING.sm || 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8 },
   backIcon: { width: 20, height: 20, resizeMode: 'contain' },
   backText: { color: COLORS.primaryBlue, fontSize: 17, fontWeight: FONTS.medium },
-  title: { fontSize: 29, color: COLORS.primaryBlue, fontWeight: FONTS.bold, marginVertical: SPACING.md || 16 },
+  title: { fontFamily: FONTS.heading, fontSize: 29, color: COLORS.primaryBlue, fontWeight: FONTS.bold, marginVertical: SPACING.md || 16 },
   list: { gap: 12, flexGrow: 1 },
   item: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: COLORS.inputBorder },
   avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#C7ECF9', alignItems: 'center', justifyContent: 'center', marginRight: 12, overflow: 'hidden' },

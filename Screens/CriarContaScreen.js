@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ImageBackground,
@@ -11,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import Text from './AppText';
+import TextInput from './AppTextInput';
 import ZeloLogo from '../components/ZeloLogo';
 import { COLORS, FONTS, SPACING } from '../theme';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';

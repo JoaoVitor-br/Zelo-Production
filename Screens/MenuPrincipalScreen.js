@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   heroImage: { width: '100%', height: '100%', position: 'absolute' },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 47, 70, 0.28)' },
   greeting: { flex: 1, justifyContent: 'center', paddingHorizontal: SPACING.md || 16 },
-  greetingTitle: { color: '#FFFFFF', fontSize: 32, fontWeight: FONTS.bold },
+  greetingTitle: { fontFamily: FONTS.heading, color: '#FFFFFF', fontSize: 32, fontWeight: FONTS.bold },
   greetingSubtitle: { color: '#FFFFFF', fontSize: 20, fontWeight: FONTS.medium, marginTop: 4 },
   optionsCard: {
     marginTop: 20, marginHorizontal: '8%', borderRadius: 24, borderWidth: 2,

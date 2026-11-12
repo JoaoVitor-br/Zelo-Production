@@ -2,7 +2,6 @@ import * as Notifications from 'expo-notifications';
 import * as Speech from 'expo-speech';
 import { Platform } from 'react-native';
 
-// Configuração do comportamento das notificações locais quando o aplicativo está aberto
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -11,10 +10,9 @@ Notifications.setNotificationHandler({
   }),
 });
 
-/**
- * Solicita permissão para disparo de alarmes e notificações locais.
- */
 export async function solicitarPermissaoNotificacoes() {
+  if (Platform.OS === 'web') return false;
+
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
@@ -40,22 +38,21 @@ export async function solicitarPermissaoNotificacoes() {
   return true;
 }
 
-/**
- * Agenda alarme recorrente local no SO para o horário do medicamento (RF009, RNF005).
- */
 export async function agendarAlarmeMedicamento(medicamento) {
   const temPermissao = await solicitarPermissaoNotificacoes();
   if (!temPermissao) return null;
 
   const [horasStr, minutosStr] = (medicamento.horario || '08:00').split(':');
-  const hora = parseInt(horasStr, 10) || 8;
-  const minuto = parseInt(minutosStr, 10) || 0;
+  const hora = parseInt(horasStr, 10);
+  const minuto = parseInt(minutosStr, 10);
+
+  if (isNaN(hora) || isNaN(minuto)) return null;
 
   try {
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title: `⏰ Hora do Medicamento: ${medicamento.nome}`,
-        body: `Dose: ${medicamento.dose || '1 comprimido'}. Clique para confirmar a ingestão.`,
+        body: `Dose: ${medicamento.dose || '1 comprimido'}. Toque para confirmar a ingestão.`,
         data: { medicamentoId: medicamento.id, tipo: 'MEDICAMENTO', foto: medicamento.imagem },
         sound: 'default',
       },
@@ -73,9 +70,62 @@ export async function agendarAlarmeMedicamento(medicamento) {
   }
 }
 
+export async function agendarAlarmeTratamento(tratamento) {
+  const temPermissao = await solicitarPermissaoNotificacoes();
+  if (!temPermissao || tratamento.confirmado) return null;
+
+  // Extrai horário no formato HH:MM caso o campo dataHora contenha hora (ex: "20/11 às 14:00")
+  const matchHora = (tratamento.dataHora || '').match(/(\d{1,2}):(\d{2})/);
+  if (!matchHora) return null;
+
+  const hora = parseInt(matchHora[1], 10);
+  const minuto = parseInt(matchHora[2], 10);
+
+  try {
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `📅 Lembrete de Consulta/Tratamento: ${tratamento.titulo}`,
+        body: `${tratamento.dataHora}${tratamento.local ? ` • Local: ${tratamento.local}` : ''}`,
+        data: { tratamentoId: tratamento.id, tipo: 'TRATAMENTO' },
+        sound: 'default',
+      },
+      trigger: {
+        hour: hora,
+        minute: minuto,
+        repeats: false,
+        channelId: 'zelo-alarmes',
+      },
+    });
+
+    return notificationId;
+  } catch (error) {
+    return null;
+  }
+}
+
 /**
- * Cancela o alarme local agendado.
+ * Reagenda todos os alarmes locais no dispositivo do usuário monitorado sempre que
+ * o cuidador adicionar, editar ou remover remédios/tratamentos no Firestore.
  */
+export async function sincronizarAlarmesLocais(medicamentos = [], tratamentos = []) {
+  const temPermissao = await solicitarPermissaoNotificacoes();
+  if (!temPermissao) return;
+
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    for (const med of medicamentos) {
+      await agendarAlarmeMedicamento(med);
+    }
+
+    for (const trat of tratamentos) {
+      if (!trat.confirmado) {
+        await agendarAlarmeTratamento(trat);
+      }
+    }
+  } catch (e) {}
+}
+
 export async function cancelarAlarme(notificationId) {
   if (notificationId) {
     try {
@@ -84,9 +134,6 @@ export async function cancelarAlarme(notificationId) {
   }
 }
 
-/**
- * Leitura por Voz (Text-To-Speech) para acessibilidade (RNF003, RF010, RF011).
- */
 export function lerTextoEmVozAlta(texto) {
   if (!texto) return;
 
@@ -98,9 +145,6 @@ export function lerTextoEmVozAlta(texto) {
   });
 }
 
-/**
- * Para a síntese de voz ativa.
- */
 export function pararVoz() {
   Speech.stop();
 }

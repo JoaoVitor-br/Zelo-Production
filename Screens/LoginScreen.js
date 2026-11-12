@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ImageBackground,
@@ -12,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Text from './AppText';
+import TextInput from './AppTextInput';
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
 import ZeloLogo from '../components/ZeloLogo';
 import { COLORS, FONTS, SPACING } from '../theme';

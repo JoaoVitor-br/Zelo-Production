@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Text from './AppText';
+import TextInput from './AppTextInput';
 import * as ImagePicker from 'expo-image-picker';
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -44,7 +44,7 @@ export default function PerfilScreen({
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,

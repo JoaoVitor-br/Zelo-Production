@@ -3,7 +3,11 @@ import { View, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-nat
 import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 
-export default function ListaZeladosScreen({ zelados = [], onVoltar = () => {} }) {
+export default function ListaZeladosScreen({
+  zelados = [],
+  onVoltar = () => {},
+  onSelectZelado = () => {},
+}) {
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={onVoltar} style={styles.backButton}>
@@ -19,22 +23,33 @@ export default function ListaZeladosScreen({ zelados = [], onVoltar = () => {} }
       <ScrollView contentContainerStyle={styles.list}>
         {zelados.length ? (
           zelados.map((item, index) => {
-            const nome = typeof item === 'string' ? item : item.nome;
+            const zeladoObj = typeof item === 'string' ? { id: item } : item || {};
+            const nome = zeladoObj.nome || 'Pessoa Monitorada';
             const detalhe =
-              typeof item === 'string'
-                ? ''
-                : item.descricao || item.email || item.telefone || 'Usuário monitorado';
+              zeladoObj.descricao || zeladoObj.email || zeladoObj.telefone || 'Usuário monitorado';
+            const fotoUrl = zeladoObj.fotoUrl || zeladoObj.photoURL || null;
 
             return (
-              <View key={`${nome}-${index}`} style={styles.item}>
+              <TouchableOpacity
+                key={`${zeladoObj.id || nome}-${index}`}
+                style={styles.item}
+                onPress={() => onSelectZelado(zeladoObj)}
+                activeOpacity={0.8}
+              >
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{(nome || '?').charAt(0).toUpperCase()}</Text>
+                  {fotoUrl ? (
+                    <Image source={{ uri: fotoUrl }} style={styles.avatarImage} />
+                  ) : (
+                    <Text style={styles.avatarText}>{(nome || '?').charAt(0).toUpperCase()}</Text>
+                  )}
                 </View>
+
                 <View style={styles.itemText}>
-                  <Text style={styles.itemTitle}>{nome || 'Pessoa Monitorada'}</Text>
+                  <Text style={styles.itemTitle}>{nome}</Text>
                   {!!detalhe && <Text style={styles.detail}>{detalhe}</Text>}
+                  <Text style={styles.actionHint}>Abrir Menu do Cuidado ›</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })
         ) : (
@@ -60,10 +75,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginVertical: SPACING.md || 16,
+    marginTop: SPACING.md || 16,
+    marginBottom: 4,
   },
   titleIcon: { width: 36, height: 36, resizeMode: 'contain', tintColor: COLORS.primaryBlue },
   title: { fontFamily: FONTS.heading, fontSize: 28, color: COLORS.primaryBlue, fontWeight: FONTS.bold },
+  subtitle: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.md || 16,
+  },
   list: { gap: 12, flexGrow: 1 },
   item: {
     flexDirection: 'row',
@@ -71,21 +92,29 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.inputBorder,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: '#C7ECF9',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
+    overflow: 'hidden',
   },
-  avatarText: { color: COLORS.primaryBlue, fontSize: 20, fontWeight: FONTS.bold },
+  avatarImage: { width: '100%', height: '100%', borderRadius: 27 },
+  avatarText: { color: COLORS.primaryBlue, fontSize: 22, fontWeight: FONTS.bold },
   itemText: { flex: 1 },
-  itemTitle: { fontFamily: FONTS.heading, color: COLORS.textDark, fontSize: 17, fontWeight: FONTS.bold },
-  detail: { color: COLORS.textDark, marginTop: 4, fontSize: 14 },
+  itemTitle: { color: COLORS.textDark, fontSize: 18, fontWeight: FONTS.bold },
+  detail: { color: COLORS.textMuted, marginTop: 2, fontSize: 14 },
+  actionHint: {
+    color: COLORS.primaryBlue,
+    fontSize: 14,
+    fontWeight: FONTS.bold,
+    marginTop: 6,
+  },
   empty: { color: COLORS.textDark, fontSize: 16, lineHeight: 24, textAlign: 'center', marginTop: 40 },
 });

@@ -7,17 +7,27 @@ import {
   Image,
   Alert,
   Modal,
-  TextInput,
 } from 'react-native';
 import Text from './AppText';
+import TextInput from './AppTextInput';
 import { COLORS, FONTS, SPACING } from '../theme';
-import { lerTextoEmVozAlta, pararVoz } from './NotificationService';
+import { lerTextoEmVozAlta } from './NotificationService';
 import { db } from '../firebase';
-import { collection, addDoc, onSnapshot, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+} from 'firebase/firestore';
 
-export default function TratamentosScreen({ userId, onVoltar }) {
+export default function TratamentosScreen({ userId, zeladoNome = null, onVoltar }) {
   const [tratamentos, setTratamentos] = useState([]);
-  const [modalNovo, setModalNovo] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editandoItem, setEditandoItem] = useState(null);
+
   const [titulo, setTitulo] = useState('');
   const [local, setLocal] = useState('');
   const [dataHora, setDataHora] = useState('');
@@ -34,6 +44,24 @@ export default function TratamentosScreen({ userId, onVoltar }) {
     return () => unsub();
   }, [userId]);
 
+  const abrirModalNovo = () => {
+    setEditandoItem(null);
+    setTitulo('');
+    setLocal('');
+    setDataHora('');
+    setObservacao('');
+    setModalVisible(true);
+  };
+
+  const abrirModalEditar = (item) => {
+    setEditandoItem(item);
+    setTitulo(item.titulo || '');
+    setLocal(item.local || '');
+    setDataHora(item.dataHora || '');
+    setObservacao(item.observacao || '');
+    setModalVisible(true);
+  };
+
   const handleSalvarTratamento = async () => {
     if (!titulo.trim() || !dataHora.trim()) {
       Alert.alert('Atenção', 'Informe o título e a data/horário do tratamento ou consulta.');
@@ -41,23 +69,59 @@ export default function TratamentosScreen({ userId, onVoltar }) {
     }
 
     try {
-      await addDoc(collection(db, 'users', userId, 'tratamentos'), {
-        titulo: titulo.trim(),
-        local: local.trim(),
-        dataHora: dataHora.trim(),
-        observacao: observacao.trim(),
-        confirmado: false,
-        createdAt: serverTimestamp(),
-      });
+      if (userId) {
+        if (editandoItem?.id) {
+          await updateDoc(doc(db, 'users', userId, 'tratamentos', editandoItem.id), {
+            titulo: titulo.trim(),
+            local: local.trim(),
+            dataHora: dataHora.trim(),
+            observacao: observacao.trim(),
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          await addDoc(collection(db, 'users', userId, 'tratamentos'), {
+            titulo: titulo.trim(),
+            local: local.trim(),
+            dataHora: dataHora.trim(),
+            observacao: observacao.trim(),
+            confirmado: false,
+            createdAt: serverTimestamp(),
+          });
+        }
+      }
 
-      setModalNovo(false);
+      setModalVisible(false);
+      setEditandoItem(null);
       setTitulo('');
       setLocal('');
       setDataHora('');
       setObservacao('');
     } catch (e) {
-      setModalNovo(false);
+      Alert.alert('Erro', 'Não foi possível salvar o tratamento/consulta.');
     }
+  };
+
+  const handleExcluirTratamento = (item) => {
+    Alert.alert(
+      'Remover Tratamento',
+      `Deseja realmente excluir "${item.titulo}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (userId && item.id) {
+                await deleteDoc(doc(db, 'users', userId, 'tratamentos', item.id));
+              }
+            } catch (e) {
+              Alert.alert('Erro', 'Não foi possível remover o item.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleConfirmarComparecimento = async (item) => {
@@ -73,7 +137,7 @@ export default function TratamentosScreen({ userId, onVoltar }) {
       }
       Alert.alert('Presença Confirmada', `Presença em "${item.titulo}" registrada com sucesso.`);
     } catch (e) {
-      Alert.alert('Presença Confirmada', `Presença registrada.`);
+      Alert.alert('Presença Confirmada', 'Presença registrada.');
     }
   };
 
@@ -81,12 +145,15 @@ export default function TratamentosScreen({ userId, onVoltar }) {
     <View style={styles.container}>
       <TouchableOpacity onPress={onVoltar} style={styles.backButton}>
         <Image source={require('./assets/icons/arrow-left 1.png')} style={styles.backIcon} />
-        <Text style={styles.backText}>Voltar ao menu</Text>
+        <Text style={styles.backText}>Voltar</Text>
       </TouchableOpacity>
 
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Tratamentos & Consultas</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => setModalNovo(true)}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Tratamentos & Consultas</Text>
+          {!!zeladoNome && <Text style={styles.zeladoTag}>Zelado: {zeladoNome}</Text>}
+        </View>
+        <TouchableOpacity style={styles.addButton} onPress={abrirModalNovo}>
           <Text style={styles.addText}>+</Text>
         </TouchableOpacity>
       </View>
@@ -107,7 +174,9 @@ export default function TratamentosScreen({ userId, onVoltar }) {
               <View style={styles.actionsRow}>
                 <TouchableOpacity
                   style={styles.voiceBtn}
-                  onPress={() => lerTextoEmVozAlta(`Tratamento ${item.titulo}, agendado para ${item.dataHora}.`)}
+                  onPress={() =>
+                    lerTextoEmVozAlta(`Tratamento ${item.titulo}, agendado para ${item.dataHora}.`)
+                  }
                 >
                   <Text style={styles.voiceBtnText}>🔊 Ouvir</Text>
                 </TouchableOpacity>
@@ -117,9 +186,26 @@ export default function TratamentosScreen({ userId, onVoltar }) {
                     style={styles.confirmBtn}
                     onPress={() => handleConfirmarComparecimento(item)}
                   >
-                    <Text style={styles.confirmBtnText}>Confirmar Presença</Text>
+                    <Text style={styles.confirmBtnText}>Confirmar</Text>
                   </TouchableOpacity>
                 )}
+              </View>
+
+              {/* Controles de Edição e Exclusão pelo Cuidador */}
+              <View style={styles.manageRow}>
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  onPress={() => abrirModalEditar(item)}
+                >
+                  <Text style={styles.editBtnText}>Editar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => handleExcluirTratamento(item)}
+                >
+                  <Text style={styles.deleteBtnText}>Excluir</Text>
+                </TouchableOpacity>
               </View>
             </View>
           ))
@@ -128,11 +214,13 @@ export default function TratamentosScreen({ userId, onVoltar }) {
         )}
       </ScrollView>
 
-      {/* Modal para Adicionar Tratamento */}
-      <Modal visible={modalNovo} animationType="slide" transparent>
+      {/* Modal para Adicionar ou Editar Tratamento */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Novo Tratamento / Consulta</Text>
+            <Text style={styles.modalTitle}>
+              {editandoItem ? 'Editar Tratamento / Consulta' : 'Novo Tratamento / Consulta'}
+            </Text>
 
             <TextInput
               style={styles.input}
@@ -153,7 +241,7 @@ export default function TratamentosScreen({ userId, onVoltar }) {
               placeholder="Local (ex: Clínica Zelo)"
             />
             <TextInput
-              style={[styles.input, { height: 80 }]}
+              style={[styles.input, { height: 80, textAlignVertical: 'top', paddingTop: 8 }]}
               value={observacao}
               onChangeText={setObservacao}
               placeholder="Observações ou preparos necessários"
@@ -161,7 +249,13 @@ export default function TratamentosScreen({ userId, onVoltar }) {
             />
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalNovo(false)}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => {
+                  setModalVisible(false);
+                  setEditandoItem(null);
+                }}
+              >
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={handleSalvarTratamento}>
@@ -180,15 +274,16 @@ const styles = StyleSheet.create({
   backButton: { paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   backIcon: { width: 20, height: 20, resizeMode: 'contain' },
   backText: { color: COLORS.primaryBlue, fontSize: 17, fontWeight: FONTS.medium },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 16 },
-  title: { fontFamily: FONTS.heading, fontSize: 24, fontWeight: FONTS.bold, color: COLORS.primaryBlue },
-  addButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primaryBlue, justifyContent: 'center', alignItems: 'center' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 14 },
+  title: { fontFamily: FONTS.heading, fontSize: 23, fontWeight: FONTS.bold, color: COLORS.primaryBlue },
+  zeladoTag: { fontSize: 14, color: COLORS.secondaryGreen, fontWeight: FONTS.bold, marginTop: 2 },
+  addButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.primaryBlue, justifyContent: 'center', alignItems: 'center' },
   addText: { color: '#FFFFFF', fontSize: 26, marginTop: -2 },
   listContainer: { paddingBottom: 30 },
   card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1.5, borderColor: COLORS.inputBorder },
   cardConfirmado: { backgroundColor: '#F0FDF4', borderColor: COLORS.secondaryGreen },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontFamily: FONTS.heading, fontSize: 18, fontWeight: FONTS.bold, color: COLORS.textDark, flex: 1 },
+  cardTitle: { fontSize: 18, fontWeight: FONTS.bold, color: COLORS.textDark, flex: 1 },
   badgeSuccess: { color: COLORS.secondaryGreen, fontWeight: FONTS.bold, fontSize: 14 },
   cardSub: { fontSize: 14, color: COLORS.textDark, marginTop: 4 },
   cardObs: { fontSize: 13, color: COLORS.textMuted, marginTop: 4 },
@@ -197,6 +292,29 @@ const styles = StyleSheet.create({
   voiceBtnText: { color: COLORS.primaryBlue, fontWeight: FONTS.bold, fontSize: 13 },
   confirmBtn: { backgroundColor: COLORS.secondaryGreen, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
   confirmBtnText: { color: '#FFFFFF', fontWeight: FONTS.bold, fontSize: 14 },
+  manageRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  editBtn: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  editBtnText: { color: COLORS.primaryBlue, fontSize: 14, fontWeight: FONTS.bold },
+  deleteBtn: {
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  deleteBtnText: { color: COLORS.redOrange, fontSize: 14, fontWeight: FONTS.bold },
   emptyText: { textAlign: 'center', color: COLORS.textMuted, marginTop: 40, fontSize: 16 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalContent: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20 },
