@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -9,8 +8,10 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import Text from './AppText';
+import TextInput from './AppTextInput';
 import * as Location from 'expo-location';
 import { COLORS, FONTS, SPACING } from '../theme';
 import MapaMap from './MapaMap';
@@ -24,9 +25,9 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -41,6 +42,24 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
   return `${d.toFixed(1)}km`;
 }
 
+function converterDistanciaEmKm(distancia) {
+  if (typeof distancia === 'number') return distancia;
+  if (!distancia || distancia === 'N/A') return Number.POSITIVE_INFINITY;
+
+  const valor = String(distancia).trim().toLowerCase();
+  if (valor.endsWith('m')) {
+    const metros = Number.parseFloat(valor.replace('m', ''));
+    return Number.isFinite(metros) ? metros / 1000 : Number.POSITIVE_INFINITY;
+  }
+  if (valor.endsWith('km')) {
+    const km = Number.parseFloat(valor.replace('km', ''));
+    return Number.isFinite(km) ? km : Number.POSITIVE_INFINITY;
+  }
+
+  const numero = Number.parseFloat(valor);
+  return Number.isFinite(numero) ? numero : Number.POSITIVE_INFINITY;
+}
+
 // Gera estabelecimentos de saúde reais/simulados em torno do GPS atual caso a API pública falhe ou fique sem conexão
 function gerarEstabelecimentosFallback(lat, lon, tipoFiltro) {
   const baseLat = lat || -23.55052;
@@ -53,19 +72,19 @@ function gerarEstabelecimentosFallback(lat, lon, tipoFiltro) {
 
   const modelos = isFarmacia
     ? [
-        { nome: 'Drogaria São Paulo', endereco: 'Av. Principal, 450', dLat: 0.0022, dLon: 0.0018 },
-        { nome: 'Droga Raia', endereco: 'Rua do Comércio, 120', dLat: -0.0031, dLon: 0.0025 },
-        { nome: 'Drogasil', endereco: 'Av. Central, 890', dLat: 0.0045, dLon: -0.0032 },
-        { nome: 'Farmácia Preço Popular', endereco: 'Praça Central, 35', dLat: -0.0019, dLon: -0.0021 },
-        { nome: 'Farmácia Pague Menos', endereco: 'Av. das Flores, 1020', dLat: 0.0058, dLon: 0.0041 },
-      ]
+      { nome: 'Drogaria São Paulo', endereco: 'Av. Principal, 450', dLat: 0.0022, dLon: 0.0018 },
+      { nome: 'Droga Raia', endereco: 'Rua do Comércio, 120', dLat: -0.0031, dLon: 0.0025 },
+      { nome: 'Drogasil', endereco: 'Av. Central, 890', dLat: 0.0045, dLon: -0.0032 },
+      { nome: 'Farmácia Preço Popular', endereco: 'Praça Central, 35', dLat: -0.0019, dLon: -0.0021 },
+      { nome: 'Farmácia Pague Menos', endereco: 'Av. das Flores, 1020', dLat: 0.0058, dLon: 0.0041 },
+    ]
     : [
-        { nome: 'UPA 24h - Pronto Atendimento', endereco: 'Av. da Saúde, s/n', dLat: 0.0035, dLon: -0.0028 },
-        { nome: 'Hospital Municipal / Regional', endereco: 'Rua das Palmeiras, 500', dLat: -0.0052, dLon: 0.0045 },
-        { nome: 'UBS - Posto de Saúde da Família', endereco: 'Rua Esperança, 80', dLat: -0.0021, dLon: -0.0019 },
-        { nome: 'Pronto Socorro Central', endereco: 'Av. Central, 1200', dLat: 0.0069, dLon: 0.0052 },
-        { nome: 'Hospital Santa Casa', endereco: 'Rua da Fraternidade, 310', dLat: 0.0025, dLon: 0.0061 },
-      ];
+      { nome: 'UPA 24h - Pronto Atendimento', endereco: 'Av. da Saúde, s/n', dLat: 0.0035, dLon: -0.0028 },
+      { nome: 'Hospital Municipal / Regional', endereco: 'Rua das Palmeiras, 500', dLat: -0.0052, dLon: 0.0045 },
+      { nome: 'UBS - Posto de Saúde da Família', endereco: 'Rua Esperança, 80', dLat: -0.0021, dLon: -0.0019 },
+      { nome: 'Pronto Socorro Central', endereco: 'Av. Central, 1200', dLat: 0.0069, dLon: 0.0052 },
+      { nome: 'Hospital Santa Casa', endereco: 'Rua da Fraternidade, 310', dLat: 0.0025, dLon: 0.0061 },
+    ];
 
   return modelos.map((m, idx) => {
     const itemLat = baseLat + m.dLat;
@@ -87,7 +106,7 @@ export default function MapaScreen({ onVoltar }) {
   const [filtro, setFiltro] = useState('farmacia'); // 'farmacia' ou 'hospital'
   const [locais, setLocais] = useState([]);
   const [rotaAtiva, setRotaAtiva] = useState(null); // Estado da rota calculada
-  
+
   const [userLocation, setUserLocation] = useState(null);
   const [mapRegion, setMapRegion] = useState({
     latitude: -23.55052,
@@ -209,7 +228,7 @@ export default function MapaScreen({ onVoltar }) {
             .filter((i) => i.latitude && i.longitude && calcularDistanciaKm(lat, lon, i.latitude, i.longitude) <= 12);
 
           if (resultados.length > 0) {
-            setLocais(resultados);
+            setLocais(resultados.sort((a, b) => converterDistanciaEmKm(a.distancia) - converterDistanciaEmKm(b.distancia)));
             sucesso = true;
           }
         }
@@ -272,7 +291,7 @@ export default function MapaScreen({ onVoltar }) {
               .filter((item) => item.latitude && item.longitude && calcularDistanciaKm(lat, lon, item.latitude, item.longitude) <= 12);
 
             if (resultados.length > 0) {
-              setLocais(resultados);
+              setLocais(resultados.sort((a, b) => converterDistanciaEmKm(a.distancia) - converterDistanciaEmKm(b.distancia)));
               sucesso = true;
               break;
             }
@@ -285,7 +304,9 @@ export default function MapaScreen({ onVoltar }) {
 
     // C) Se a rede falhar ou não encontrar registros, carrega os locais da região em torno do GPS
     if (!sucesso) {
-      const fallbackList = gerarEstabelecimentosFallback(lat, lon, tipoFiltro);
+      const fallbackList = gerarEstabelecimentosFallback(lat, lon, tipoFiltro).sort(
+        (a, b) => converterDistanciaEmKm(a.distancia) - converterDistanciaEmKm(b.distancia)
+      );
       setLocais(fallbackList);
     }
 
@@ -300,12 +321,14 @@ export default function MapaScreen({ onVoltar }) {
     buscarLocaisProximos(targetLat, targetLon, novoFiltro);
   };
 
-  // Filtra locais na barra de pesquisa por nome ou endereço
-  const locaisFiltrados = locais.filter(
-    (item) =>
-      item.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      item.endereco.toLowerCase().includes(busca.toLowerCase())
-  );
+  // Filtra locais na barra de pesquisa por nome ou endereço e mantém a ordem crescente pela distância
+  const locaisFiltrados = [...locais]
+    .filter(
+      (item) =>
+        item.nome.toLowerCase().includes(busca.toLowerCase()) ||
+        item.endereco.toLowerCase().includes(busca.toLowerCase())
+    )
+    .sort((a, b) => converterDistanciaEmKm(a.distancia) - converterDistanciaEmKm(b.distancia));
 
   // 3. Calcula e traça a rota pelas ruas reais utilizando a API de Rotas OSRM do OpenStreetMap
   const tracarRota = async (destino) => {
@@ -354,9 +377,9 @@ export default function MapaScreen({ onVoltar }) {
               break;
             }
           }
-        } catch (e) {}
+        } catch (e) { }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // Fallback: se a API de trânsito demorar, traça o caminho direto
     if (!coordinates) {
@@ -410,6 +433,11 @@ export default function MapaScreen({ onVoltar }) {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={onVoltar} style={styles.backButton}>
+        <Image source={require('./assets/icons/arrow-left 1.png')} style={styles.backIcon} />
+        <Text style={styles.backText}>Voltar ao menu</Text>
+      </TouchableOpacity>
+
       {/* Campo de Busca Superior */}
       <View style={styles.searchBarContainer}>
         <TextInput
@@ -421,9 +449,7 @@ export default function MapaScreen({ onVoltar }) {
         />
       </View>
 
-      <TouchableOpacity onPress={onVoltar} style={styles.backButton}>
-        <Text style={styles.backText}>← Voltar ao menu</Text>
-      </TouchableOpacity>
+
 
       {/* Renderização do Mapa Real */}
       <View style={styles.mapCanvas}>
@@ -512,7 +538,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textDark,
   },
-  backButton: { marginBottom: 12 },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  backIcon: {
+    width: 18,
+    height: 18,
+    resizeMode: 'contain',
+    tintColor: COLORS.primaryBlue,
+  },
   backText: { color: COLORS.primaryBlue, fontSize: 15, fontWeight: FONTS.medium },
   mapCanvas: {
     height: 220,

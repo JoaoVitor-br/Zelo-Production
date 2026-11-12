@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   View,
+  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -8,18 +9,20 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { agendarAlarmeMedicamento } from './NotificationService';
 
 export default function CadastroMedicamentoScreen({
   userId,
+  isGerenciandoZelado = false,
   medicamentoSelecionado = null,
   onVoltar,
   onSalvo,
 }) {
+  const isEditing = Boolean(medicamentoSelecionado?.id);
+
   const [nome, setNome] = useState(medicamentoSelecionado?.nome || '');
   const [tipo, setTipo] = useState(medicamentoSelecionado?.tipo || 'Comprimido');
   const [horario, setHorario] = useState(medicamentoSelecionado?.horario || '14:00');
@@ -55,23 +58,71 @@ export default function CadastroMedicamentoScreen({
         inicio: inicio.trim(),
         fim: fim.trim(),
         observacao: observacao.trim(),
-        createdAt: serverTimestamp(),
       };
 
       if (userId) {
-        const docRef = await addDoc(collection(db, 'users', userId, 'medicamentos'), medData);
-        // Agenda o alarme local no dispositivo (RF009, RNF005)
-        await agendarAlarmeMedicamento({ id: docRef.id, ...medData });
+        if (isEditing) {
+          const medRef = doc(db, 'users', userId, 'medicamentos', medicamentoSelecionado.id);
+          await updateDoc(medRef, {
+            ...medData,
+            updatedAt: serverTimestamp(),
+          });
+          if (!isGerenciandoZelado) {
+            await agendarAlarmeMedicamento({ id: medicamentoSelecionado.id, ...medData });
+          }
+          Alert.alert(
+            'Sucesso',
+            isGerenciandoZelado
+              ? 'Medicamento atualizado e enviado para o dispositivo do zelado!'
+              : 'Medicamento atualizado com sucesso!'
+          );
+        } else {
+          const docRef = await addDoc(collection(db, 'users', userId, 'medicamentos'), {
+            ...medData,
+            createdAt: serverTimestamp(),
+          });
+          if (!isGerenciandoZelado) {
+            await agendarAlarmeMedicamento({ id: docRef.id, ...medData });
+          }
+          Alert.alert(
+            'Sucesso',
+            isGerenciandoZelado
+              ? 'Medicamento agendado! O zelado já recebeu na rotina e o alarme foi ativado no aparelho dele.'
+              : 'Medicamento e alarme agendados com sucesso!'
+          );
+        }
       }
 
-      Alert.alert('Sucesso', 'Medicamento e alarme agendados com sucesso!');
       onSalvo?.();
     } catch (error) {
-      Alert.alert('Sucesso', 'Dados guardados com sucesso.');
-      onSalvo?.();
+      Alert.alert('Erro', 'Não foi possível salvar o medicamento. Verifique o vínculo com o zelado.');
     } finally {
       setSalvando(false);
     }
+  };
+
+  const handleExcluir = () => {
+    if (!isEditing || !userId) return;
+
+    Alert.alert(
+      'Remover Medicamento',
+      `Tem certeza que deseja excluir "${nome}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'users', userId, 'medicamentos', medicamentoSelecionado.id));
+              onSalvo?.();
+            } catch (error) {
+              Alert.alert('Erro', 'Não foi possível remover o medicamento.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -102,7 +153,9 @@ export default function CadastroMedicamentoScreen({
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Informações e Estoque</Text>
+        <Text style={styles.sectionTitle}>
+          {isEditing ? 'Editar Informações' : 'Informações e Estoque'}
+        </Text>
         <View style={styles.infoCard}>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Horário do Alarme</Text>
@@ -135,7 +188,19 @@ export default function CadastroMedicamentoScreen({
           <View style={styles.rowDivider} />
 
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>URL da Imagem da Caixa</Text>
+            <Text style={styles.rowLabel}>Início</Text>
+            <TextInput style={styles.rowInput} value={inicio} onChangeText={setInicio} />
+          </View>
+          <View style={styles.rowDivider} />
+
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Fim</Text>
+            <TextInput style={styles.rowInput} value={fim} onChangeText={setFim} />
+          </View>
+          <View style={styles.rowDivider} />
+
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>URL da Imagem</Text>
             <TextInput style={[styles.rowInput, { fontSize: 13 }]} value={imagem} onChangeText={setImagem} autoCapitalize="none" />
           </View>
         </View>
@@ -154,9 +219,19 @@ export default function CadastroMedicamentoScreen({
 
         <TouchableOpacity style={styles.saveButton} onPress={handleSalvar} disabled={salvando}>
           <Text style={styles.saveButtonText}>
-            {salvando ? 'Agendando...' : 'Salvar e Ativar Alarme'}
+            {salvando
+              ? 'Salvando...'
+              : isEditing
+              ? 'Salvar Alterações'
+              : 'Salvar e Enviar ao Zelado'}
           </Text>
         </TouchableOpacity>
+
+        {isEditing && (
+          <TouchableOpacity style={styles.deleteButton} onPress={handleExcluir}>
+            <Text style={styles.deleteButtonText}>Remover Medicamento</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );
@@ -173,7 +248,7 @@ const styles = StyleSheet.create({
   headerInputs: { flex: 1 },
   nameInput: { fontSize: 20, fontWeight: FONTS.bold, color: COLORS.primaryBlue },
   subInput: { fontSize: 15, color: COLORS.textDark, marginTop: 2 },
-  sectionTitle: { fontFamily: FONTS.heading, fontSize: 22, color: COLORS.primaryBlue, fontWeight: FONTS.bold, marginTop: 14, marginBottom: 8 },
+  sectionTitle: { fontSize: 22, color: COLORS.primaryBlue, fontWeight: FONTS.bold, marginTop: 14, marginBottom: 8 },
   infoCard: { backgroundColor: '#D1F0FA', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1.5, borderColor: COLORS.inputBorder },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
   rowLabel: { fontSize: 16, color: COLORS.textDark, fontWeight: FONTS.medium },
@@ -183,4 +258,15 @@ const styles = StyleSheet.create({
   obsInput: { fontSize: 15, color: COLORS.textDark, textAlignVertical: 'top' },
   saveButton: { backgroundColor: COLORS.secondaryGreen, borderRadius: 14, height: 52, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
   saveButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: FONTS.bold },
+  deleteButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: COLORS.redOrange,
+    borderRadius: 14,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  deleteButtonText: { color: COLORS.redOrange, fontSize: 17, fontWeight: FONTS.bold },
 });

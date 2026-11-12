@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   TouchableOpacity,
   StyleSheet,
   Image,
@@ -8,10 +9,9 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import Text from './AppText';
 import { COLORS, FONTS, SPACING } from '../theme';
 import { db } from '../firebase';
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 export default function ConvidarScreen({
   userProfile = {},
@@ -23,57 +23,118 @@ export default function ConvidarScreen({
   const [codigoTextoInput, setCodigoTextoInput] = useState('');
   const [conectando, setConectando] = useState(false);
 
-  const codigoPareamento = (currentUserId || 'zelo1234').substring(0, 6).toLowerCase();
+  const codigoPareamento = (
+    userProfile.codigoPareamento ||
+    (currentUserId || 'zelo12').substring(0, 6)
+  ).toLowerCase();
+
+  // Garante que o código de 6 caracteres deste usuário esteja publicado para busca
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const registrarCodigo = async () => {
+      try {
+        await setDoc(
+          doc(db, 'codigosPareamento', codigoPareamento),
+          {
+            uid: currentUserId,
+            nome: userProfile.nome || 'Usuário Zelo',
+            email: userProfile.email || '',
+            fotoUrl: userProfile.fotoUrl || '',
+          },
+          { merge: true }
+        );
+      } catch (e) {}
+    };
+
+    registrarCodigo();
+  }, [currentUserId, codigoPareamento, userProfile]);
 
   const handleConectarPorCodigo = async () => {
-    const targetUid = codigoTextoInput.trim().toLowerCase();
-    if (!targetUid) {
+    const entrada = codigoTextoInput.trim();
+    if (!entrada) {
       Alert.alert('Atenção', 'Digite o código de pareamento informado no aplicativo do familiar.');
+      return;
+    }
+
+    if (!currentUserId) {
+      Alert.alert('Erro', 'Você precisa estar autenticado para conectar uma conta.');
       return;
     }
 
     setConectando(true);
     try {
-      if (currentUserId) {
-        const cuidadorRef = doc(db, 'users', currentUserId);
-        const targetUserRef = doc(db, 'users', targetUid);
-        const targetDoc = await getDoc(targetUserRef);
+      let realTargetUid = entrada;
 
-        const targetData = targetDoc.exists() ? targetDoc.data() : {};
-        const targetNome = targetData.nome || `Zelado (${targetUid})`;
-        const targetEmail = targetData.email || '';
-        const targetFotoUrl = targetData.fotoUrl || '';
-
-        // 1. Adiciona zelado com foto ao perfil do cuidador
-        await updateDoc(cuidadorRef, {
-          zelados: arrayUnion({
-            id: targetUid,
-            nome: targetNome,
-            email: targetEmail,
-            fotoUrl: targetFotoUrl,
-            dataConexao: new Date().toISOString(),
-          }),
-        });
-
-        // 2. Adiciona cuidador com foto ao perfil do zelado
-        if (targetDoc.exists()) {
-          await updateDoc(targetUserRef, {
-            cuidadores: arrayUnion({
-              id: currentUserId,
-              nome: userProfile.nome || 'Cuidador Vinculado',
-              email: userProfile.email || '',
-              fotoUrl: userProfile.fotoUrl || '',
-              dataConexao: new Date().toISOString(),
-            }),
-          });
+      // Se o usuário digitou o código curto de 6 caracteres, resolve o UID completo no Firestore
+      if (entrada.length <= 10) {
+        const codigoSnap = await getDoc(doc(db, 'codigosPareamento', entrada.toLowerCase()));
+        if (!codigoSnap.exists()) {
+          Alert.alert(
+            'Código não encontrado',
+            'Verifique se o código digitado está correto e se o familiar já abriu o aplicativo.'
+          );
+          setConectando(false);
+          return;
         }
+        realTargetUid = codigoSnap.data().uid;
       }
 
-      Alert.alert('Sucesso!', 'Conexão realizada com sucesso com o perfil monitorado.');
+      if (realTargetUid === currentUserId) {
+        Alert.alert('Atenção', 'Você não pode vincular sua própria conta como zelado.');
+        setConectando(false);
+        return;
+      }
+
+      const cuidadorRef = doc(db, 'users', currentUserId);
+      const targetUserRef = doc(db, 'users', realTargetUid);
+      const targetDoc = await getDoc(targetUserRef);
+
+      if (!targetDoc.exists()) {
+        Alert.alert('Erro', 'Perfil do usuário monitorado não encontrado.');
+        setConectando(false);
+        return;
+      }
+
+      const targetData = targetDoc.data();
+      const targetNome = targetData.nome || 'Pessoa Monitorada';
+      const targetEmail = targetData.email || '';
+      const targetFotoUrl = targetData.fotoUrl || '';
+
+      // 1. Grava o zelado com o UID completo (28 chars) no perfil do cuidador
+      await updateDoc(cuidadorRef, {
+        zelados: arrayUnion({
+          id: realTargetUid,
+          uid: realTargetUid,
+          nome: targetNome,
+          email: targetEmail,
+          fotoUrl: targetFotoUrl,
+          dataConexao: new Date().toISOString(),
+        }),
+        zeladosUids: arrayUnion(realTargetUid),
+      });
+
+      // 2. Grava o cuidador com seu UID completo no perfil do zelado
+      await updateDoc(targetUserRef, {
+        cuidadores: arrayUnion({
+          id: currentUserId,
+          uid: currentUserId,
+          nome: userProfile.nome || 'Cuidador Vinculado',
+          email: userProfile.email || '',
+          fotoUrl: userProfile.fotoUrl || '',
+          dataConexao: new Date().toISOString(),
+        }),
+        cuidadoresUids: arrayUnion(currentUserId),
+      });
+
+      setCodigoTextoInput('');
+      Alert.alert(
+        'Conectado!',
+        `Você agora está conectado(a) a ${targetNome}. Acesse "Ver os zelados" para gerenciar a rotina.`
+      );
       onConexaoSucesso?.();
     } catch (error) {
-      Alert.alert('Sucesso!', 'Código validado com sucesso.');
-      onVoltar?.();
+      Alert.alert('Erro de Conexão', 'Não foi possível concluir o vínculo. Verifique sua internet.');
     } finally {
       setConectando(false);
     }
@@ -132,7 +193,11 @@ export default function ConvidarScreen({
                 <View style={[styles.qrCorner, styles.qrTopRight]} />
                 <View style={[styles.qrCorner, styles.qrBottomLeft]} />
                 <Image
-                  source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${codigoPareamento}` }}
+                  source={{
+                    uri: `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                      codigoPareamento
+                    )}`,
+                  }}
                   style={styles.qrImage}
                 />
               </View>
@@ -160,6 +225,7 @@ export default function ConvidarScreen({
                 placeholder="Digite o código do zelado"
                 placeholderTextColor="#8EA2B0"
                 autoCapitalize="none"
+                autoCorrect={false}
               />
             </View>
 
@@ -202,7 +268,7 @@ const styles = StyleSheet.create({
   heroImage: { width: '100%', height: '100%', position: 'absolute' },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 50, 80, 0.45)' },
   heroTextContainer: { flex: 1, justifyContent: 'center', paddingHorizontal: 20 },
-  heroTitle: { fontFamily: FONTS.heading, color: '#FFFFFF', fontSize: 26, fontWeight: FONTS.bold },
+  heroTitle: { color: '#FFFFFF', fontSize: 26, fontWeight: FONTS.bold },
   heroSubtitle: { color: '#FFFFFF', fontSize: 16, fontWeight: FONTS.medium, marginTop: 4 },
   tabContainer: {
     flexDirection: 'row',
@@ -217,7 +283,6 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#FFFFFF' },
   sectionContainer: { alignItems: 'center' },
   sectionTitle: {
-    fontFamily: FONTS.heading,
     fontSize: 22,
     color: COLORS.primaryBlue,
     fontWeight: FONTS.bold,
