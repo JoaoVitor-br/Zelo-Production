@@ -15,7 +15,7 @@ import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { COLORS, FONTS, SPACING } from '../theme';
-import { db, auth, storage } from '../firebase';
+import { db, auth, storage, getFirebaseErrorMessage } from '../firebase';
 
 export default function PerfilScreen({
   userProfile = {},
@@ -30,7 +30,10 @@ export default function PerfilScreen({
   const [descricao, setDescricao] = useState(
     userProfile.descricao || 'Cuidador responsável por acompanhamento diário.'
   );
-  const [fotoUrl, setFotoUrl] = useState(userProfile.fotoUrl || auth.currentUser?.photoURL || '');
+  const fotoExistente = userProfile.fotoUrl || auth.currentUser?.photoURL || '';
+  const [fotoUrl, setFotoUrl] = useState(
+    /^https?:\/\//i.test(fotoExistente) ? fotoExistente : ''
+  );
   const [salvando, setSalvando] = useState(false);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
 
@@ -51,16 +54,19 @@ export default function PerfilScreen({
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const selectedUri = result.assets[0].uri;
-        await uploadFotoPerfil(selectedUri);
+        const selectedImage = result.assets[0];
+        await uploadFotoPerfil(selectedImage.uri, selectedImage.mimeType);
       }
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
     }
   };
 
-  const uploadFotoPerfil = async (uri) => {
-    if (!userId) return;
+  const uploadFotoPerfil = async (uri, mimeType) => {
+    if (!userId) {
+      Alert.alert('Erro', 'É necessário estar conectado para salvar a foto na nuvem.');
+      return;
+    }
     setEnviandoFoto(true);
 
     try {
@@ -68,21 +74,34 @@ export default function PerfilScreen({
       const blob = await response.blob();
       const storageRef = ref(storage, `perfis/${userId}.jpg`);
 
-      await uploadBytes(storageRef, blob);
+      await uploadBytes(storageRef, blob, {
+        contentType: mimeType || blob.type || 'image/jpeg',
+      });
       const downloadUrl = await getDownloadURL(storageRef);
 
+      await updateDoc(doc(db, 'users', userId), { fotoUrl: downloadUrl });
       setFotoUrl(downloadUrl);
 
-      // Atualiza Firestore e Firebase Auth
-      await updateDoc(doc(db, 'users', userId), { fotoUrl: downloadUrl });
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { photoURL: downloadUrl });
+      try {
+        if (auth.currentUser) {
+          await updateProfile(auth.currentUser, { photoURL: downloadUrl });
+        }
+      } catch (error) {
+        console.error('Falha ao atualizar a foto no Firebase Authentication:', error);
+        Alert.alert(
+          'Foto salva',
+          'A foto foi salva no perfil e ficará disponível em outros aparelhos, mas não foi possível atualizar a foto do Authentication.'
+        );
+        return;
       }
 
       Alert.alert('Sucesso', 'Foto de perfil atualizada com sucesso!');
     } catch (error) {
-      Alert.alert('Aviso', 'Não foi possível carregar a imagem na nuvem. A imagem foi mantida localmente.');
-      setFotoUrl(uri);
+      console.error('Falha ao enviar foto de perfil:', error);
+      Alert.alert(
+        'Falha ao salvar foto',
+        `A foto não foi enviada para a nuvem e não será salva no perfil. ${getFirebaseErrorMessage(error)}`
+      );
     } finally {
       setEnviandoFoto(false);
     }

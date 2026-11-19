@@ -10,8 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { COLORS, FONTS, SPACING } from '../theme';
-import { db } from '../firebase';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db, getFirebaseErrorMessage } from '../firebase';
+import { doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 
 export default function ConvidarScreen({
   userProfile = {},
@@ -23,32 +23,50 @@ export default function ConvidarScreen({
   const [codigoTextoInput, setCodigoTextoInput] = useState('');
   const [conectando, setConectando] = useState(false);
 
-  const codigoPareamento = (
-    userProfile.codigoPareamento ||
-    (currentUserId || 'zelo12').substring(0, 6)
+  const codigoSalvo = userProfile.codigoPareamento || '';
+  const codigoPareamento = (/^[a-z0-9]{16}$/i.test(codigoSalvo)
+    ? codigoSalvo
+    : (currentUserId || '').substring(0, 16)
   ).toLowerCase();
 
-  // Garante que o código de 6 caracteres deste usuário esteja publicado para busca
+  // Mantém o código salvo no perfil sincronizado com o registro usado para pareamento.
   useEffect(() => {
     if (!currentUserId) return;
 
     const registrarCodigo = async () => {
       try {
+        if (codigoSalvo !== codigoPareamento) {
+          await updateDoc(doc(db, 'users', currentUserId), {
+            codigoPareamento,
+          });
+        }
+
         await setDoc(
-          doc(db, 'codigosPareamento', codigoPareamento),
+          doc(db, 'pairingCodes', codigoPareamento),
           {
             uid: currentUserId,
             nome: userProfile.nome || 'Usuário Zelo',
-            email: userProfile.email || '',
             fotoUrl: userProfile.fotoUrl || '',
           },
           { merge: true }
         );
-      } catch (e) {}
+      } catch (error) {
+        console.error('Falha ao registrar código de pareamento:', error);
+        Alert.alert(
+          'Erro no código de pareamento',
+          `Não foi possível disponibilizar seu código. ${getFirebaseErrorMessage(error)}`
+        );
+      }
     };
 
     registrarCodigo();
-  }, [currentUserId, codigoPareamento, userProfile]);
+  }, [
+    currentUserId,
+    codigoPareamento,
+    codigoSalvo,
+    userProfile.nome,
+    userProfile.fotoUrl,
+  ]);
 
   const handleConectarPorCodigo = async () => {
     const entrada = codigoTextoInput.trim();
@@ -64,68 +82,47 @@ export default function ConvidarScreen({
 
     setConectando(true);
     try {
-      let realTargetUid = entrada;
+      const codigoSnap = await getDoc(doc(db, 'pairingCodes', entrada.toLowerCase()));
+      if (!codigoSnap.exists()) {
+        Alert.alert(
+          'Código não encontrado',
+          'Verifique se o código digitado está correto e se o familiar já abriu o aplicativo.'
+        );
+        return;
+      }
 
-      // Se o usuário digitou o código curto de 6 caracteres, resolve o UID completo no Firestore
-      if (entrada.length <= 10) {
-        const codigoSnap = await getDoc(doc(db, 'codigosPareamento', entrada.toLowerCase()));
-        if (!codigoSnap.exists()) {
-          Alert.alert(
-            'Código não encontrado',
-            'Verifique se o código digitado está correto e se o familiar já abriu o aplicativo.'
-          );
-          setConectando(false);
-          return;
-        }
-        realTargetUid = codigoSnap.data().uid;
+      const targetData = codigoSnap.data();
+      const realTargetUid = targetData.uid;
+      if (!realTargetUid) {
+        Alert.alert('Erro', 'O código informado não está associado a um perfil válido.');
+        return;
       }
 
       if (realTargetUid === currentUserId) {
         Alert.alert('Atenção', 'Você não pode vincular sua própria conta como zelado.');
-        setConectando(false);
         return;
       }
 
-      const cuidadorRef = doc(db, 'users', currentUserId);
-      const targetUserRef = doc(db, 'users', realTargetUid);
-      const targetDoc = await getDoc(targetUserRef);
-
-      if (!targetDoc.exists()) {
-        Alert.alert('Erro', 'Perfil do usuário monitorado não encontrado.');
-        setConectando(false);
-        return;
-      }
-
-      const targetData = targetDoc.data();
       const targetNome = targetData.nome || 'Pessoa Monitorada';
-      const targetEmail = targetData.email || '';
       const targetFotoUrl = targetData.fotoUrl || '';
+      const dataConexao = new Date().toISOString();
+      const batch = writeBatch(db);
 
-      // 1. Grava o zelado com o UID completo (28 chars) no perfil do cuidador
-      await updateDoc(cuidadorRef, {
-        zelados: arrayUnion({
-          id: realTargetUid,
-          uid: realTargetUid,
-          nome: targetNome,
-          email: targetEmail,
-          fotoUrl: targetFotoUrl,
-          dataConexao: new Date().toISOString(),
-        }),
-        zeladosUids: arrayUnion(realTargetUid),
+      batch.set(doc(db, 'users', currentUserId, 'zelados', realTargetUid), {
+        uid: realTargetUid,
+        nome: targetNome,
+        fotoUrl: targetFotoUrl,
+        codigoPareamento: entrada.toLowerCase(),
+        dataConexao,
       });
-
-      // 2. Grava o cuidador com seu UID completo no perfil do zelado
-      await updateDoc(targetUserRef, {
-        cuidadores: arrayUnion({
-          id: currentUserId,
-          uid: currentUserId,
-          nome: userProfile.nome || 'Cuidador Vinculado',
-          email: userProfile.email || '',
-          fotoUrl: userProfile.fotoUrl || '',
-          dataConexao: new Date().toISOString(),
-        }),
-        cuidadoresUids: arrayUnion(currentUserId),
+      batch.set(doc(db, 'users', realTargetUid, 'cuidadores', currentUserId), {
+        uid: currentUserId,
+        nome: userProfile.nome || 'Cuidador Vinculado',
+        fotoUrl: userProfile.fotoUrl || '',
+        codigoPareamento: entrada.toLowerCase(),
+        dataConexao,
       });
+      await batch.commit();
 
       setCodigoTextoInput('');
       Alert.alert(
@@ -134,7 +131,11 @@ export default function ConvidarScreen({
       );
       onConexaoSucesso?.();
     } catch (error) {
-      Alert.alert('Erro de Conexão', 'Não foi possível concluir o vínculo. Verifique sua internet.');
+      console.error('Falha ao concluir vínculo de cuidador:', error);
+      Alert.alert(
+        'Erro de Conexão',
+        `Não foi possível concluir o vínculo. ${getFirebaseErrorMessage(error)}`
+      );
     } finally {
       setConectando(false);
     }
@@ -186,36 +187,15 @@ export default function ConvidarScreen({
 
         {modo === 'exibir' ? (
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Conectar por QR Code</Text>
-            <View style={styles.qrBox}>
-              <View style={styles.qrPlaceholderGrid}>
-                <View style={[styles.qrCorner, styles.qrTopLeft]} />
-                <View style={[styles.qrCorner, styles.qrTopRight]} />
-                <View style={[styles.qrCorner, styles.qrBottomLeft]} />
-                <Image
-                  source={{
-                    uri: `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                      codigoPareamento
-                    )}`,
-                  }}
-                  style={styles.qrImage}
-                />
-              </View>
-            </View>
-
+            
             <Text style={styles.sectionTitle}>Conectar por código</Text>
             <View style={styles.codeContainer}>
               <Text style={styles.codeText}>{codigoPareamento}</Text>
             </View>
           </View>
+          
         ) : (
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Conectar por QR Code</Text>
-            <TouchableOpacity style={styles.cameraBox} activeOpacity={0.8}>
-              <Image source={require('./assets/icons/qr-code 1.png')} style={styles.cameraIcon} />
-              <Text style={styles.cameraText}>Escanear QR Code com a câmera</Text>
-            </TouchableOpacity>
-
             <Text style={styles.sectionTitle}>Conectar por código</Text>
             <View style={styles.inputCodeContainer}>
               <TextInput

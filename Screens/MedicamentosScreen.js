@@ -74,7 +74,11 @@ export default function MedicamentosScreen({
                   <View style={styles.medDetails}>
                     <Text style={styles.medName}>{med.nome || 'Medicamento'}</Text>
                     <Text style={styles.medType}>
-                      {med.tipo || 'Comprimido'} • {med.horario || 'Horário não definido'}
+                      {med.tipo || 'Comprimido'} • {
+                        (Array.isArray(med.horarios) ? med.horarios : [med.horario])
+                          .filter(Boolean)
+                          .join(' • ') || 'Horário não definido'
+                      }
                     </Text>
                     <Text style={styles.medStock}>
                       Dose: {med.dose || '1 un.'} | Estoque: {med.quantidade || '0'}

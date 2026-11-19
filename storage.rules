@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function canManageUser(userId) {
+      return signedIn()
+        && (request.auth.uid == userId
+          || firestore.exists(
+            /databases/(default)/documents/users/$(userId)/cuidadores/$(request.auth.uid)
+          ));
+    }
+
+    function isImageUpload() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /perfis/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && fileName == request.auth.uid + '.jpg'
+        && isImageUpload();
+      allow delete: if signedIn() && fileName == request.auth.uid + '.jpg';
+    }
+
+    match /medicamentos/{userId}/{fileName} {
+      allow read: if canManageUser(userId);
+      allow create, update: if canManageUser(userId) && isImageUpload();
+      allow delete: if canManageUser(userId);
+    }
+  }
+}

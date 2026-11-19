@@ -7,6 +7,14 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
+      function canManageMedicamentos() {
+        return signedIn()
+          && (request.auth.uid == userId
+            || exists(
+              /databases/$(database)/documents/users/$(userId)/cuidadores/$(request.auth.uid)
+            ));
+      }
+
       allow get: if signedIn() && request.auth.uid == userId;
       allow list: if false;
       allow create: if signedIn()
@@ -36,6 +44,10 @@ service cloud.firestore {
         && request.auth.uid == userId
         && resource.data.uid == userId;
 
+      match /medicamentos/{medicamentoId} {
+        allow read, create, update, delete: if canManageMedicamentos();
+      }
+
       match /zelados/{zeladoId} {
         allow get, list: if signedIn() && request.auth.uid == userId;
         allow create, update: if signedIn()
@@ -49,7 +61,9 @@ service cloud.firestore {
       }
 
       match /cuidadores/{caregiverId} {
-        allow get, list: if signedIn() && request.auth.uid == userId;
+        allow get: if signedIn()
+          && (request.auth.uid == userId || request.auth.uid == caregiverId);
+        allow list: if signedIn() && request.auth.uid == userId;
         allow create, update: if signedIn()
           && request.auth.uid == caregiverId
           && exists(/databases/$(database)/documents/pairingCodes/$(request.resource.data.codigoPareamento))

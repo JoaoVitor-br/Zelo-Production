@@ -76,13 +76,20 @@ function eventosDoDia(date, medicamentos, tratamentos) {
   const chaveData = formatarChaveData(date);
   const eventosMedicamento = medicamentos
     .filter((medicamento) => medicamentoAtivoNaData(medicamento, date))
-    .map((medicamento) => ({
-      id: `med-${medicamento.id}`,
-      tipo: 'medicamento',
-      horario: extrairHora(medicamento.horario) || 'Horário não definido',
-      titulo: `Tomar ${medicamento.nome || 'medicamento'}`,
-      detalhe: [medicamento.dose, medicamento.frequencia].filter(Boolean).join(' • '),
-    }));
+    .flatMap((medicamento) => {
+      const horarios = Array.isArray(medicamento.horarios)
+        ? medicamento.horarios
+        : [medicamento.horario];
+      const horariosValidos = horarios.filter(Boolean);
+
+      return (horariosValidos.length ? horariosValidos : [null]).map((horario, index) => ({
+        id: `med-${medicamento.id}-${index}`,
+        tipo: 'medicamento',
+        horario: extrairHora(horario) || 'Horário não definido',
+        titulo: `Tomar ${medicamento.nome || 'medicamento'}`,
+        detalhe: [medicamento.dose, medicamento.frequencia].filter(Boolean).join(' • '),
+      }));
+    });
 
   const eventosTratamento = tratamentos
     .filter((tratamento) => {

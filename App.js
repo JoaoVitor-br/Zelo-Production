@@ -254,7 +254,11 @@ export default function App() {
   const zeladosExibidos = combinarVinculos(zelados, zeladosVinculados);
   const assuntosResumo = [
     ...medicamentosVisiveis.map((medicamento) => ({
-      titulo: `💊 ${medicamento.nome} - Horário: ${medicamento.horario || 'Agendado'}`,
+      titulo: `💊 ${medicamento.nome} - Horário: ${
+        (Array.isArray(medicamento.horarios) ? medicamento.horarios : [medicamento.horario])
+          .filter(Boolean)
+          .join(' • ') || 'Agendado'
+      }`,
       descricao: `Dose: ${medicamento.dose || '1 comprimido'} • Estoque: ${medicamento.quantidade || '0'}`,
     })),
     ...tratamentosVisiveis.map((tratamento) => ({

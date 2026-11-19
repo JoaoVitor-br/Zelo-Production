@@ -23,6 +23,52 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 
+function formatarDataInput(valor) {
+  const digitos = String(valor || '').replace(/\D/g, '').slice(0, 8);
+  if (digitos.length <= 2) return digitos;
+  if (digitos.length <= 4) return `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+  return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+}
+
+function formatarHoraInput(valor) {
+  const digitos = String(valor || '').replace(/\D/g, '').slice(0, 4);
+  return digitos.length > 2
+    ? `${digitos.slice(0, 2)}:${digitos.slice(2)}`
+    : digitos;
+}
+
+function dataValida(valor) {
+  const match = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return false;
+
+  const dia = Number(match[1]);
+  const mes = Number(match[2]);
+  const ano = Number(match[3]);
+  const data = new Date(ano, mes - 1, dia);
+  return data.getFullYear() === ano && data.getMonth() === mes - 1 && data.getDate() === dia;
+}
+
+function separarDataHora(valor) {
+  const texto = String(valor || '');
+  const dataIso = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const dataBr = texto.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+  const horaMatch = texto.match(/(\d{1,2}):(\d{2})/);
+  let data = '';
+
+  if (dataIso) {
+    data = `${dataIso[3]}/${dataIso[2]}/${dataIso[1]}`;
+  } else if (dataBr) {
+    let ano = dataBr[3] || String(new Date().getFullYear());
+    if (ano.length === 2) ano = `20${ano}`;
+    data = `${dataBr[1].padStart(2, '0')}/${dataBr[2].padStart(2, '0')}/${ano}`;
+  }
+
+  const hora = horaMatch
+    ? `${horaMatch[1].padStart(2, '0')}:${horaMatch[2]}`
+    : '';
+  return { data: formatarDataInput(data), hora: formatarHoraInput(hora) };
+}
+
 export default function TratamentosScreen({ userId, zeladoNome = null, onVoltar }) {
   const [tratamentos, setTratamentos] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -30,7 +76,8 @@ export default function TratamentosScreen({ userId, zeladoNome = null, onVoltar 
 
   const [titulo, setTitulo] = useState('');
   const [local, setLocal] = useState('');
-  const [dataHora, setDataHora] = useState('');
+  const [data, setData] = useState('');
+  const [hora, setHora] = useState('');
   const [observacao, setObservacao] = useState('');
 
   useEffect(() => {
@@ -48,7 +95,8 @@ export default function TratamentosScreen({ userId, zeladoNome = null, onVoltar 
     setEditandoItem(null);
     setTitulo('');
     setLocal('');
-    setDataHora('');
+    setData('');
+    setHora('');
     setObservacao('');
     setModalVisible(true);
   };
@@ -57,16 +105,20 @@ export default function TratamentosScreen({ userId, zeladoNome = null, onVoltar 
     setEditandoItem(item);
     setTitulo(item.titulo || '');
     setLocal(item.local || '');
-    setDataHora(item.dataHora || '');
+    const dataHoraSeparada = separarDataHora(item.dataHora);
+    setData(dataHoraSeparada.data);
+    setHora(dataHoraSeparada.hora);
     setObservacao(item.observacao || '');
     setModalVisible(true);
   };
 
   const handleSalvarTratamento = async () => {
-    if (!titulo.trim() || !dataHora.trim()) {
+    if (!titulo.trim() || !dataValida(data) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
       Alert.alert('Atenção', 'Informe o título e a data/horário do tratamento ou consulta.');
       return;
     }
+
+    const dataHora = `${data} às ${hora}`;
 
     try {
       if (userId) {
@@ -94,7 +146,8 @@ export default function TratamentosScreen({ userId, zeladoNome = null, onVoltar 
       setEditandoItem(null);
       setTitulo('');
       setLocal('');
-      setDataHora('');
+      setData('');
+      setHora('');
       setObservacao('');
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível salvar o tratamento/consulta.');
@@ -230,9 +283,19 @@ export default function TratamentosScreen({ userId, zeladoNome = null, onVoltar 
             />
             <TextInput
               style={styles.input}
-              value={dataHora}
-              onChangeText={setDataHora}
-              placeholder="Data e Horário (ex: 20/11 às 14:00)"
+              value={data}
+              onChangeText={(valor) => setData(formatarDataInput(valor))}
+              placeholder="Data (DD/MM/AAAA)"
+              keyboardType="number-pad"
+              maxLength={10}
+            />
+            <TextInput
+              style={styles.input}
+              value={hora}
+              onChangeText={(valor) => setHora(formatarHoraInput(valor))}
+              placeholder="Horário (HH:MM)"
+              keyboardType="number-pad"
+              maxLength={5}
             />
             <TextInput
               style={styles.input}

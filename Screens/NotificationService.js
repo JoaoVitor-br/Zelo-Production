@@ -42,29 +42,41 @@ export async function agendarAlarmeMedicamento(medicamento) {
   const temPermissao = await solicitarPermissaoNotificacoes();
   if (!temPermissao) return null;
 
-  const [horasStr, minutosStr] = (medicamento.horario || '08:00').split(':');
-  const hora = parseInt(horasStr, 10);
-  const minuto = parseInt(minutosStr, 10);
-
-  if (isNaN(hora) || isNaN(minuto)) return null;
-
   try {
-    const notificationId = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `⏰ Hora do Medicamento: ${medicamento.nome}`,
-        body: `Dose: ${medicamento.dose || '1 comprimido'}. Toque para confirmar a ingestão.`,
-        data: { medicamentoId: medicamento.id, tipo: 'MEDICAMENTO', foto: medicamento.imagem },
-        sound: 'default',
-      },
-      trigger: {
-        hour: hora,
-        minute: minuto,
-        repeats: true,
-        channelId: 'zelo-alarmes',
-      },
-    });
+    const horarios = Array.isArray(medicamento.horarios)
+      ? medicamento.horarios
+      : [medicamento.horario || '08:00'];
+    const ids = [];
 
-    return notificationId;
+    for (const horario of horarios) {
+      const [horasStr, minutosStr] = String(horario).trim().split(':');
+      const hora = parseInt(horasStr, 10);
+      const minuto = parseInt(minutosStr, 10);
+      if (isNaN(hora) || isNaN(minuto)) continue;
+
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `⏰ Hora do Medicamento: ${medicamento.nome}`,
+          body: `Dose: ${medicamento.dose || '1 comprimido'}. Toque para confirmar a ingestão.`,
+          data: {
+            medicamentoId: medicamento.id,
+            horarioAlarme: `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`,
+            tipo: 'MEDICAMENTO',
+            foto: medicamento.imagem,
+          },
+          sound: 'default',
+        },
+        trigger: {
+          hour: hora,
+          minute: minuto,
+          repeats: true,
+          channelId: 'zelo-alarmes',
+        },
+      });
+      ids.push(notificationId);
+    }
+
+    return ids.length ? ids : null;
   } catch (error) {
     return null;
   }
